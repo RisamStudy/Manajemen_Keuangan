@@ -38,6 +38,11 @@ CREATE TABLE IF NOT EXISTS kategori (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Database lama dimigrasikan otomatis oleh aplikasi. Perintah manual alternatif:
+-- ALTER TABLE pengeluaran
+-- ADD COLUMN jenis ENUM('PENGELUARAN', 'PEMASUKAN')
+-- NOT NULL DEFAULT 'PENGELUARAN' AFTER kategori_id;
+
 -- ============================================================
 -- Tabel Pengeluaran - Catatan pengeluaran
 -- ============================================================
@@ -45,6 +50,7 @@ CREATE TABLE IF NOT EXISTS pengeluaran (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     kategori_id INT,
+    jenis ENUM('PENGELUARAN', 'PEMASUKAN') NOT NULL DEFAULT 'PENGELUARAN',
     judul VARCHAR(200) NOT NULL,
     jumlah DECIMAL(15, 2) NOT NULL,
     tanggal DATE NOT NULL,

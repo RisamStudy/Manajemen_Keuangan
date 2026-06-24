@@ -1,4 +1,4 @@
-﻿package com.fintrackpro.ui;
+package com.fintrackpro.ui;
 
 import com.fintrackpro.ui.components.RoundedButton;
 import com.fintrackpro.ui.components.RoundedTextField;
@@ -94,6 +94,7 @@ public class DashboardForm extends JFrame {
         initializeFrame();
         buildUI();
         setLocationRelativeTo(null);
+        ensureTransactionTypeColumn();
         
         // Load initial data
         refreshDashboardData();
@@ -131,6 +132,30 @@ public class DashboardForm extends JFrame {
         g2.drawString(text, x, y);
         g2.dispose();
         return img;
+    }
+
+    private void ensureTransactionTypeColumn() {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            boolean columnExists;
+            try (ResultSet columns = metaData.getColumns(
+                    conn.getCatalog(), null, "pengeluaran", "jenis")) {
+                columnExists = columns.next();
+            }
+            if (!columnExists) {
+                try (Statement statement = conn.createStatement()) {
+                    statement.executeUpdate(
+                            "ALTER TABLE pengeluaran ADD COLUMN jenis " +
+                            "ENUM('PENGELUARAN','PEMASUKAN') NOT NULL DEFAULT 'PENGELUARAN' " +
+                            "AFTER kategori_id");
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Migrasi tipe transaksi gagal: " + ex.getMessage(),
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void buildUI() {
@@ -180,10 +205,10 @@ public class DashboardForm extends JFrame {
         menuContainer.setOpaque(false);
         menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
         
-        itemDashboard = new SidebarMenuItem("Dashboard", "â–¦", true);
-        itemTransaksi = new SidebarMenuItem("Transaksi", "$", false);
-        itemAnggaran = new SidebarMenuItem("Anggaran", "%", false);
-        itemLaporan = new SidebarMenuItem("Laporan", "â‰¡", false);
+        itemDashboard = new SidebarMenuItem("Dashboard", SidebarIconType.DASHBOARD, true);
+        itemTransaksi = new SidebarMenuItem("Transaksi", SidebarIconType.TRANSACTION, false);
+        itemAnggaran = new SidebarMenuItem("Anggaran", SidebarIconType.BUDGET, false);
+        itemLaporan = new SidebarMenuItem("Laporan", SidebarIconType.REPORT, false);
         
         menuContainer.add(itemDashboard);
         menuContainer.add(Box.createVerticalStrut(8));
@@ -198,7 +223,7 @@ public class DashboardForm extends JFrame {
         // Button + Transaksi Baru
         sgbc.gridy++;
         sgbc.insets = new Insets(30, 20, 30, 20);
-        RoundedButton btnAddTransaction = new RoundedButton("ï¼‹ Transaksi Baru");
+        RoundedButton btnAddTransaction = new RoundedButton("+  Transaksi Baru");
         btnAddTransaction.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnAddTransaction.addActionListener(e -> openAddTransactionDialog());
         sidebarPanel.add(btnAddTransaction, sgbc);
@@ -216,8 +241,8 @@ public class DashboardForm extends JFrame {
         bottomMenuContainer.setOpaque(false);
         bottomMenuContainer.setLayout(new BoxLayout(bottomMenuContainer, BoxLayout.Y_AXIS));
         
-        itemPengaturan = new SidebarMenuItem("Pengaturan", "âš™", false);
-        itemBantuan = new SidebarMenuItem("Bantuan", "?", false);
+        itemPengaturan = new SidebarMenuItem("Pengaturan", SidebarIconType.SETTINGS, false);
+        itemBantuan = new SidebarMenuItem("Bantuan", SidebarIconType.HELP, false);
         
         bottomMenuContainer.add(itemPengaturan);
         bottomMenuContainer.add(Box.createVerticalStrut(8));
@@ -258,12 +283,12 @@ public class DashboardForm extends JFrame {
         profileWrapper.setOpaque(false);
         
         // Notification & History icons
-        JLabel bellIcon = new JLabel("ðŸ””");
+        JLabel bellIcon = new JLabel("\uD83D\uDD14");
         bellIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         bellIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         profileWrapper.add(bellIcon);
         
-        JLabel historyIcon = new JLabel("â³");
+        JLabel historyIcon = new JLabel("\u23F3");
         historyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         historyIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         profileWrapper.add(historyIcon);
@@ -319,7 +344,7 @@ public class DashboardForm extends JFrame {
         };
         avatarLabel.setPreferredSize(new Dimension(38, 38));
 
-        JLabel chevronLabel = new JLabel("â–¼");
+        JLabel chevronLabel = new JLabel("\u25BC");
         chevronLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         chevronLabel.setForeground(UIConstants.TEXT_SECONDARY);
 
@@ -402,11 +427,15 @@ public class DashboardForm extends JFrame {
         JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actionButtonsPanel.setOpaque(false);
         
-        JButton btnPeriod = new JButton("ðŸ“…  30 Hari Terakhir");
+        JButton btnPeriod = new JButton("30 Hari Terakhir");
+        btnPeriod.setIcon(new ActionButtonIcon(ActionIconType.CALENDAR));
+        btnPeriod.setIconTextGap(8);
         styleSecondaryButton(btnPeriod);
         actionButtonsPanel.add(btnPeriod);
-        
-        JButton btnExport = new JButton("ðŸ“¤  Ekspor Laporan");
+
+        JButton btnExport = new JButton("Ekspor Laporan");
+        btnExport.setIcon(new ActionButtonIcon(ActionIconType.EXPORT));
+        btnExport.setIconTextGap(8);
         styleSecondaryButton(btnExport);
         actionButtonsPanel.add(btnExport);
         
@@ -488,7 +517,7 @@ public class DashboardForm extends JFrame {
         
         agbc.gridy++;
         agbc.insets = new Insets(20, 0, 0, 0);
-        sahamPanel = new AssetProgressPanel("Saham", 0, UIConstants.PRIMARY_BLUE, "â†‘");
+        sahamPanel = new AssetProgressPanel("Saham", 0, UIConstants.PRIMARY_BLUE, "\u2191");
         assetsCard.add(sahamPanel, agbc);
         
         agbc.gridy++;
@@ -498,7 +527,7 @@ public class DashboardForm extends JFrame {
         
         agbc.gridy++;
         agbc.insets = new Insets(15, 0, 0, 0);
-        lainnyaPanel = new AssetProgressPanel("Lainnya", 0, new Color(107, 114, 128), "â—†");
+        lainnyaPanel = new AssetProgressPanel("Lainnya", 0, new Color(107, 114, 128), "\u25C6");
         assetsCard.add(lainnyaPanel, agbc);
         
         agbc.gridy++;
@@ -508,7 +537,7 @@ public class DashboardForm extends JFrame {
         agbc.gridy++;
         agbc.weighty = 0.0;
         agbc.insets = new Insets(15, 0, 0, 0);
-        JLabel lblAssetFooter = new JLabel("Lihat detail portofolio lengkap â†’");
+        JLabel lblAssetFooter = new JLabel("Lihat detail portofolio lengkap \u2192");
         lblAssetFooter.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblAssetFooter.setForeground(new Color(147, 197, 253));
         lblAssetFooter.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -690,7 +719,8 @@ public class DashboardForm extends JFrame {
                     
                     // 1. Get Monthly Expenditures
                     String sumQuery = "SELECT SUM(jumlah) FROM pengeluaran " +
-                            "WHERE user_id = ? AND MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())";
+                            "WHERE user_id = ? AND jenis = 'PENGELUARAN' " +
+                            "AND MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())";
                     stmt = conn.prepareStatement(sumQuery);
                     stmt.setInt(1, userId);
                     rs = stmt.executeQuery();
@@ -701,7 +731,7 @@ public class DashboardForm extends JFrame {
                     stmt.close();
 
                     String previousMonthQuery = "SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran " +
-                            "WHERE user_id = ? " +
+                            "WHERE user_id = ? AND jenis = 'PENGELUARAN' " +
                             "AND MONTH(tanggal) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) " +
                             "AND YEAR(tanggal) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))";
                     stmt = conn.prepareStatement(previousMonthQuery);
@@ -713,10 +743,23 @@ public class DashboardForm extends JFrame {
                     rs.close();
                     stmt.close();
 
+                    String incomeQuery = "SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran " +
+                            "WHERE user_id = ? AND jenis = 'PEMASUKAN' " +
+                            "AND MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())";
+                    stmt = conn.prepareStatement(incomeQuery);
+                    stmt.setInt(1, userId);
+                    rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        data.monthlyIncome = rs.getDouble(1);
+                    }
+                    rs.close();
+                    stmt.close();
+
                     // 2. Get Weekly Expenditures (Mon to Sun)
                     String weeklyQuery = "SELECT DAYOFWEEK(tanggal) as day, SUM(jumlah) as total " +
                             "FROM pengeluaran " +
-                            "WHERE user_id = ? AND YEARWEEK(tanggal, 1) = YEARWEEK(CURDATE(), 1) " +
+                            "WHERE user_id = ? AND jenis = 'PENGELUARAN' " +
+                            "AND YEARWEEK(tanggal, 1) = YEARWEEK(CURDATE(), 1) " +
                             "GROUP BY DAYOFWEEK(tanggal)";
                     stmt = conn.prepareStatement(weeklyQuery);
                     stmt.setInt(1, userId);
@@ -742,7 +785,8 @@ public class DashboardForm extends JFrame {
                     stmt.close();
 
                     // 3. Get Recent Transactions (limit 3)
-                    String trQuery = "SELECT p.judul, k.nama AS kat_nama, k.icon AS kat_icon, k.warna AS kat_warna, p.tanggal, p.jumlah " +
+                    String trQuery = "SELECT p.judul, k.nama AS kat_nama, k.icon AS kat_icon, " +
+                            "k.warna AS kat_warna, p.tanggal, p.jumlah, p.jenis " +
                             "FROM pengeluaran p " +
                             "LEFT JOIN kategori k ON p.kategori_id = k.id " +
                             "WHERE p.user_id = ? " +
@@ -758,8 +802,9 @@ public class DashboardForm extends JFrame {
                         item.kategoriIcon = rs.getString("kat_icon");
                         item.tanggal = rs.getDate("tanggal");
                         item.jumlah = rs.getDouble("jumlah");
+                        item.jenis = rs.getString("jenis");
                         
-                        if (item.kategoriIcon == null) item.kategoriIcon = "ðŸ“¦";
+                        if (item.kategoriIcon == null) item.kategoriIcon = "\uD83D\uDCE6";
                         if (item.kategoriNama == null) item.kategoriNama = "Lainnya";
                         
                         data.recentTransactions.add(item);
@@ -786,6 +831,7 @@ public class DashboardForm extends JFrame {
                     
                     // Update Stat Cards
                     pengeluaranCard.setValue("Rp" + df.format(data.monthlyExpenses));
+                    pendapatanCard.setValue("Rp" + df.format(data.monthlyIncome));
                     pengeluaranCard.setBadgeText(formatExpenseTrendBadge(data.monthlyExpenses, data.previousMonthExpenses));
                     pengeluaranCard.setSubtext(formatExpenseTrendText(data.monthlyExpenses, data.previousMonthExpenses));
                     
@@ -802,7 +848,7 @@ public class DashboardForm extends JFrame {
                             tr.kategoriIcon + " " + tr.kategoriNama,
                             sdf.format(tr.tanggal),
                             "Selesai",
-                            "-Rp" + df.format(tr.jumlah)
+                            ("PEMASUKAN".equals(tr.jenis) ? "+Rp" : "-Rp") + df.format(tr.jumlah)
                         });
                     }
                     
@@ -847,6 +893,7 @@ public class DashboardForm extends JFrame {
     // Container data untuk background worker
     private static class DashboardData {
         double monthlyExpenses = 0;
+        double monthlyIncome = 0;
         double previousMonthExpenses = 0;
         double[] weeklyChartData = new double[7];
         ArrayList<TransactionItem> recentTransactions = new ArrayList<>();
@@ -859,6 +906,7 @@ public class DashboardForm extends JFrame {
         String kategoriIcon;
         Date tanggal;
         double jumlah;
+        String jenis = "PENGELUARAN";
     }
 
     // ==========================================
@@ -1270,7 +1318,7 @@ public class DashboardForm extends JFrame {
         lbCrumb1.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { handleMenuClick("Transaksi"); }
         });
-        JLabel lbSep = new JLabel("â€º");
+        JLabel lbSep = new JLabel("\u203A");
         lbSep.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbSep.setForeground(UIConstants.TEXT_SECONDARY);
         JLabel lbCrumb2 = new JLabel("Transaksi Baru");
@@ -1460,7 +1508,7 @@ public class DashboardForm extends JFrame {
         fg.gridy++; fg.insets = new Insets(8, 0, 0, 0);
         JPanel batalRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         batalRow.setOpaque(false);
-        JLabel lbBatal = new JLabel("Batal â€” kembali ke daftar transaksi");
+        JLabel lbBatal = new JLabel("Batal \u2014 kembali ke daftar transaksi");
         lbBatal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbBatal.setForeground(UIConstants.TEXT_SECONDARY);
         lbBatal.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -1626,6 +1674,7 @@ public class DashboardForm extends JFrame {
 
     private void loadTambahTransaksiData() {
         // Reset form
+        resetSaveTransactionButton();
         if (ttTxtNama != null) ttTxtNama.setText("");
         if (ttTxtJumlah != null) ttTxtJumlah.setText("");
         if (ttTxtTanggal != null)
@@ -1647,7 +1696,7 @@ public class DashboardForm extends JFrame {
                         int id = rs.getInt("id");
                         String nama = rs.getString("nama");
                         String icon = rs.getString("icon");
-                        if (icon == null) icon = "ðŸ“¦";
+                        if (icon == null) icon = "\uD83D\uDCE6";
                         KategoriItem ki = new KategoriItem(id, nama, icon);
                         SwingUtilities.invokeLater(() -> ttComboKategori.addItem(ki));
                     }
@@ -1655,7 +1704,9 @@ public class DashboardForm extends JFrame {
 
                 // Load budget used
                 try (Connection conn = DatabaseConnection.getConnection()) {
-                    String q = "SELECT SUM(jumlah) FROM pengeluaran WHERE user_id = ? AND MONTH(tanggal)=MONTH(CURDATE()) AND YEAR(tanggal)=YEAR(CURDATE())";
+                    String q = "SELECT SUM(jumlah) FROM pengeluaran WHERE user_id = ? " +
+                            "AND jenis = 'PENGELUARAN' AND MONTH(tanggal)=MONTH(CURDATE()) " +
+                            "AND YEAR(tanggal)=YEAR(CURDATE())";
                     PreparedStatement stmt = conn.prepareStatement(q);
                     stmt.setInt(1, userId);
                     ResultSet rs = stmt.executeQuery();
@@ -1673,7 +1724,9 @@ public class DashboardForm extends JFrame {
 
                 // Load last 3 transactions
                 try (Connection conn = DatabaseConnection.getConnection()) {
-                    String q = "SELECT p.judul, k.icon, p.jumlah, k.warna FROM pengeluaran p LEFT JOIN kategori k ON p.kategori_id=k.id WHERE p.user_id=? ORDER BY p.tanggal DESC, p.id DESC LIMIT 3";
+                    String q = "SELECT p.judul, k.icon, p.jumlah, k.warna FROM pengeluaran p " +
+                            "LEFT JOIN kategori k ON p.kategori_id=k.id WHERE p.user_id=? " +
+                            "AND p.jenis='PENGELUARAN' ORDER BY p.tanggal DESC, p.id DESC LIMIT 3";
                     PreparedStatement stmt = conn.prepareStatement(q);
                     stmt.setInt(1, userId);
                     ResultSet rs = stmt.executeQuery();
@@ -1682,7 +1735,7 @@ public class DashboardForm extends JFrame {
                     java.util.List<JPanel> rows = new java.util.ArrayList<>();
                     while (rs.next()) {
                         String jd = rs.getString("judul"); if (jd == null) jd = "-";
-                        String ic = rs.getString("icon"); if (ic == null) ic = "ðŸ“¦";
+                        String ic = rs.getString("icon"); if (ic == null) ic = "\uD83D\uDCE6";
                         double jml = rs.getDouble("jumlah");
                         JPanel row = new JPanel(new BorderLayout(10, 0));
                         row.setOpaque(false); row.setMaximumSize(new Dimension(10000, 48));
@@ -1742,24 +1795,48 @@ public class DashboardForm extends JFrame {
             JOptionPane.showMessageDialog(this, "Pilih kategori terlebih dahulu.", "Validasi", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        java.sql.Date transactionDate;
+        try {
+            Date parsedDate = new SimpleDateFormat("MM/dd/yyyy").parse(ttTxtTanggal.getText().trim());
+            transactionDate = new java.sql.Date(parsedDate.getTime());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Tanggal harus menggunakan format MM/dd/yyyy.",
+                    "Validasi", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (ttBtnSave != null) { ttBtnSave.setEnabled(false); ttBtnSave.setText("Menyimpan..."); }
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String sql = "INSERT INTO pengeluaran (user_id, kategori_id, judul, jumlah, tanggal, catatan) VALUES (?,?,?,?,CURDATE(),?)";
+            String sql = "INSERT INTO pengeluaran " +
+                    "(user_id, kategori_id, jenis, judul, jumlah, tanggal, catatan) VALUES (?,?,?,?,?,?,?)";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, userId);
             ps.setInt(2, katItem.id);
-            ps.setString(3, judul);
-            ps.setDouble(4, jumlah);
-            ps.setString(5, catatan.isEmpty() ? null : catatan);
+            ps.setString(3, ttJenis);
+            ps.setString(4, judul);
+            ps.setDouble(5, jumlah);
+            ps.setDate(6, transactionDate);
+            ps.setString(7, catatan.isEmpty() ? null : catatan);
             ps.executeUpdate();
-            JOptionPane.showMessageDialog(this, "Transaksi berhasil disimpan!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    ttJenis.equals("PEMASUKAN")
+                            ? "Pemasukan berhasil disimpan!"
+                            : "Pengeluaran berhasil disimpan!",
+                    "Sukses", JOptionPane.INFORMATION_MESSAGE);
             refreshDashboardData();
             refreshTransaksiPage();
             handleMenuClick("Transaksi");
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal menyimpan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            if (ttBtnSave != null) { ttBtnSave.setEnabled(true); ttBtnSave.setText("Simpan Transaksi  â–¶"); }
+        } finally {
+            resetSaveTransactionButton();
+        }
+    }
+
+    private void resetSaveTransactionButton() {
+        if (ttBtnSave != null) {
+            ttBtnSave.setEnabled(true);
+            ttBtnSave.setText("Simpan Transaksi");
         }
     }
 
@@ -2161,7 +2238,8 @@ public class DashboardForm extends JFrame {
                 try (Connection conn = DatabaseConnection.getConnection()) {
                     String q = "SELECT k.nama, COALESCE(SUM(p.jumlah),0) AS total " +
                         "FROM kategori k LEFT JOIN pengeluaran p ON k.id=p.kategori_id " +
-                        "AND p.user_id=? AND MONTH(p.tanggal)=MONTH(CURDATE()) AND YEAR(p.tanggal)=YEAR(CURDATE()) " +
+                        "AND p.user_id=? AND p.jenis='PENGELUARAN' " +
+                        "AND MONTH(p.tanggal)=MONTH(CURDATE()) AND YEAR(p.tanggal)=YEAR(CURDATE()) " +
                         "WHERE k.user_id IS NULL OR k.user_id=? GROUP BY k.id, k.nama ORDER BY total DESC LIMIT 8";
                     PreparedStatement ps = conn.prepareStatement(q);
                     ps.setInt(1, userId); ps.setInt(2, userId);
@@ -2193,16 +2271,25 @@ public class DashboardForm extends JFrame {
                     mLabels[5-i] = sdf.format(mc.getTime());
                     try (Connection conn = DatabaseConnection.getConnection()) {
                         PreparedStatement ps = conn.prepareStatement(
-                            "SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran " +
+                            "SELECT " +
+                            "COALESCE(SUM(CASE WHEN jenis='PENGELUARAN' THEN jumlah ELSE 0 END),0) AS spent, " +
+                            "COALESCE(SUM(CASE WHEN jenis='PEMASUKAN' THEN jumlah ELSE 0 END),0) AS income " +
+                            "FROM pengeluaran " +
                             "WHERE user_id=? AND MONTH(tanggal)=? AND YEAR(tanggal)=?");
                         ps.setInt(1, userId); ps.setInt(2, mon); ps.setInt(3, yr);
                         ResultSet rs = ps.executeQuery();
-                        mSpent[5-i] = rs.next() ? rs.getDouble(1) : 0;
+                        if (rs.next()) {
+                            mSpent[5-i] = rs.getDouble("spent");
+                            mIncome[5-i] = rs.getDouble("income");
+                        }
                     } catch (SQLException ex) { ex.printStackTrace(); }
-                    mIncome[5-i] = 0;
                 }
-                savRate  = 0;
-                netAccum = 0;
+                double totalIncome = 0;
+                for (int i = 0; i < mIncome.length; i++) {
+                    totalIncome += mIncome[i];
+                    netAccum += mIncome[i] - mSpent[i];
+                }
+                savRate = totalIncome > 0 ? Math.max(0, netAccum / totalIncome * 100.0) : 0;
                 return null;
             }
 
@@ -2335,8 +2422,8 @@ public class DashboardForm extends JFrame {
         agSisaSaldo        = new JLabel("Rp0");
         agPeringatan       = new JLabel("0");
 
-        statsRow.add(buildAgStatCard("TOTAL ANGGARAN",   agTotalAnggaran,   "â†‘ 5% dari bulan lalu",   new Color(16, 185, 129), false));
-        statsRow.add(buildAgStatCard("TOTAL PENGELUARAN", agTotalPengeluaran, "â†‘ 12% dari target",     new Color(59, 130, 246), false));
+        statsRow.add(buildAgStatCard("TOTAL ANGGARAN",   agTotalAnggaran,   "\u2191 5% dari bulan lalu",   new Color(16, 185, 129), false));
+        statsRow.add(buildAgStatCard("TOTAL PENGELUARAN", agTotalPengeluaran, "\u2191 12% dari target",     new Color(59, 130, 246), false));
         statsRow.add(buildAgStatCard("SISA SALDO",        agSisaSaldo,        "Tersisa hingga akhir bulan", new Color(245, 158, 11), false));
         statsRow.add(buildAgStatCard("PERINGATAN",        agPeringatan,       "Kategori melebihi batas", new Color(239, 68, 68), true));
         outer.add(statsRow, g);
@@ -2485,7 +2572,7 @@ public class DashboardForm extends JFrame {
         JLabel lbRecentTitle = new JLabel("Transaksi Anggaran Terbaru");
         lbRecentTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lbRecentTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbLihatSemua = new JLabel("LIHAT SEMUA RIWAYAT â€º");
+        JLabel lbLihatSemua = new JLabel("LIHAT SEMUA RIWAYAT \u203A");
         lbLihatSemua.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lbLihatSemua.setForeground(UIConstants.PRIMARY_BLUE);
         lbLihatSemua.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -2638,7 +2725,7 @@ public class DashboardForm extends JFrame {
         lbLimit.setForeground(UIConstants.TEXT_SECONDARY);
         lbLimit.setAlignmentX(Component.RIGHT_ALIGNMENT);
         if (over) {
-            JLabel lbOver = new JLabel("âš  MELEWATI BATAS");
+            JLabel lbOver = new JLabel("\u26A0 MELEWATI BATAS");
             lbOver.setFont(new Font("Segoe UI", Font.BOLD, 9));
             lbOver.setForeground(new Color(239,68,68));
             lbOver.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -2663,7 +2750,7 @@ public class DashboardForm extends JFrame {
                 DecimalFormat df = new DecimalFormat("###,###,###", sym);
 
                 double[] limits = {0, 0, 0, 0};
-                String[] icons  = {"ðŸ½", "ðŸ ", "ðŸŽ­", "ðŸšŒ"};
+                String[] icons  = {"\uD83C\uDF7D", "\uD83C\uDFE0", "\uD83C\uDFAD", "\uD83D\uDE8C"};
                 String[] names  = {"Makanan & Minuman", "Sewa & Tempat Tinggal", "Hiburan", "Transportasi"};
                 String[] subs   = {"Restoran, Belanja Makanan", "Kost, Utilitas, Perawatan",
                                    "Bioskop, Langganan, Acara", "Ojek, Bus, Bensin, Tol"};
@@ -2675,7 +2762,7 @@ public class DashboardForm extends JFrame {
                         // Get actual spend for this category (by name match)
                         String q = "SELECT COALESCE(SUM(p.jumlah),0) FROM pengeluaran p " +
                             "JOIN kategori k ON p.kategori_id=k.id " +
-                            "WHERE p.user_id=? AND k.nama LIKE ? " +
+                            "WHERE p.user_id=? AND p.jenis='PENGELUARAN' AND k.nama LIKE ? " +
                             "AND MONTH(p.tanggal)=MONTH(CURDATE()) AND YEAR(p.tanggal)=YEAR(CURDATE())";
                         PreparedStatement ps = conn.prepareStatement(q);
                         ps.setInt(1, userId);
@@ -2697,7 +2784,8 @@ public class DashboardForm extends JFrame {
                 try (Connection conn = DatabaseConnection.getConnection()) {
                     String q = "SELECT p.tanggal, k.nama, k.icon, p.jumlah " +
                         "FROM pengeluaran p LEFT JOIN kategori k ON p.kategori_id=k.id " +
-                        "WHERE p.user_id=? ORDER BY p.tanggal DESC, p.id DESC LIMIT 5";
+                        "WHERE p.user_id=? AND p.jenis='PENGELUARAN' " +
+                        "ORDER BY p.tanggal DESC, p.id DESC LIMIT 5";
                     PreparedStatement ps = conn.prepareStatement(q);
                     ps.setInt(1, userId);
                     ResultSet rs = ps.executeQuery();
@@ -2705,7 +2793,7 @@ public class DashboardForm extends JFrame {
                     while (rs.next()) {
                         String tgl  = rs.getString("tanggal"); if (tgl==null) tgl="-";
                         String kNam = rs.getString("nama");    if (kNam==null) kNam="Lainnya";
-                        String kIc  = rs.getString("icon");    if (kIc==null)  kIc="ðŸ“¦";
+                        String kIc  = rs.getString("icon");    if (kIc==null)  kIc="\uD83D\uDCE6";
                         double jml  = rs.getDouble("jumlah");
 
                         JPanel rRow = new JPanel(new GridLayout(1, 4, 0, 0));
@@ -2723,7 +2811,7 @@ public class DashboardForm extends JFrame {
                         lKat.setForeground(UIConstants.TEXT_PRIMARY);
                         lKat.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-                        JLabel lStat = new JLabel("â— Pengeluaran");
+                        JLabel lStat = new JLabel("\u25CF Pengeluaran");
                         lStat.setFont(new Font("Segoe UI", Font.BOLD, 11));
                         lStat.setForeground(new Color(239,68,68));
                         lStat.setBorder(new EmptyBorder(10, 0, 10, 0));
@@ -2866,14 +2954,15 @@ public class DashboardForm extends JFrame {
         pnlDate.add(lblDateTitle, BorderLayout.NORTH);
         
         tComboTanggal = new JComboBox<>(new String[]{
-            "ðŸ“…  Bulan Ini",
-            "ðŸ“…  30 Hari Terakhir",
-            "ðŸ“…  7 Hari Terakhir",
-            "ðŸ“…  Kustom..."
+            "Bulan Ini",
+            "30 Hari Terakhir",
+            "7 Hari Terakhir",
+            "Kustom..."
         });
         tComboTanggal.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tComboTanggal.setBackground(Color.WHITE);
         tComboTanggal.setPreferredSize(new Dimension(200, 36));
+        tComboTanggal.setRenderer(new LeadingIconComboRenderer(ActionIconType.CALENDAR));
         pnlDate.add(tComboTanggal, BorderLayout.CENTER);
         
         fc.gridx = 0;
@@ -2892,6 +2981,7 @@ public class DashboardForm extends JFrame {
         tComboKategori.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tComboKategori.setBackground(Color.WHITE);
         tComboKategori.setPreferredSize(new Dimension(200, 36));
+        tComboKategori.setRenderer(new LeadingIconComboRenderer(ActionIconType.CATEGORY));
         tComboKategori.addActionListener(e -> refreshTransaksiTableData());
         pnlKat.add(tComboKategori, BorderLayout.CENTER);
         
@@ -2940,14 +3030,21 @@ public class DashboardForm extends JFrame {
         fc.weightx = 1.0;
         fc.insets = new Insets(15, 10, 0, 10);
         
-        JPanel pnlFilterActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel pnlFilterActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 4));
         pnlFilterActions.setOpaque(false);
+        pnlFilterActions.setBorder(new EmptyBorder(0, 0, 4, 0));
         
-        JButton btnAdvancedFilter = new JButton("ðŸ”  Filter Lanjutan");
+        JButton btnAdvancedFilter = new JButton("Filter Lanjutan");
+        btnAdvancedFilter.setIcon(new ActionButtonIcon(ActionIconType.FILTER));
+        btnAdvancedFilter.setIconTextGap(8);
         styleSecondaryButton(btnAdvancedFilter);
-        
-        JButton btnExportCSV = new JButton("ðŸ“¥  Ekspor CSV");
+        btnAdvancedFilter.setPreferredSize(new Dimension(174, 42));
+
+        JButton btnExportCSV = new JButton("Ekspor CSV");
+        btnExportCSV.setIcon(new ActionButtonIcon(ActionIconType.DOWNLOAD));
+        btnExportCSV.setIconTextGap(8);
         styleSecondaryButton(btnExportCSV);
+        btnExportCSV.setPreferredSize(new Dimension(150, 42));
         btnExportCSV.addActionListener(e -> {
             JOptionPane.showMessageDialog(this, "Data transaksi berhasil diekspor ke CSV!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
         });
@@ -3007,7 +3104,7 @@ public class DashboardForm extends JFrame {
         tTable.getColumnModel().getColumn(2).setPreferredWidth(180); // KATEGORI
         tTable.getColumnModel().getColumn(3).setPreferredWidth(300); // DESKRIPSI
         tTable.getColumnModel().getColumn(4).setPreferredWidth(150); // JUMLAH
-        tTable.getColumnModel().getColumn(5).setPreferredWidth(120); // AKSI
+        tTable.getColumnModel().getColumn(5).setPreferredWidth(170); // AKSI
 
         JTableHeader header = tTable.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -3054,10 +3151,6 @@ public class DashboardForm extends JFrame {
                         lbl.setForeground(new Color(239, 68, 68));
                         lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
                     }
-                } else if (column == 5) { // AKSI
-                    lbl.setHorizontalAlignment(JLabel.CENTER);
-                    lbl.setForeground(UIConstants.PRIMARY_BLUE);
-                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 } else {
                     lbl.setHorizontalAlignment(JLabel.LEFT);
                 }
@@ -3065,6 +3158,8 @@ public class DashboardForm extends JFrame {
             }
         };
         tTable.setDefaultRenderer(Object.class, cellRenderer);
+        tTable.getColumnModel().getColumn(2).setCellRenderer(new TransactionCategoryRenderer());
+        tTable.getColumnModel().getColumn(5).setCellRenderer(new TransactionActionRenderer());
 
         // Add mouse listener to open action popup menu
         tTable.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -3075,8 +3170,12 @@ public class DashboardForm extends JFrame {
                 if (row >= 0 && col == 5) {
                     int id = (int) tTable.getValueAt(row, 0);
                     JPopupMenu popup = new JPopupMenu();
-                    JMenuItem menuEdit = new JMenuItem("âœï¸  Edit Transaksi");
-                    JMenuItem menuDelete = new JMenuItem("ðŸ—‘ï¸  Hapus Transaksi");
+                    JMenuItem menuEdit = new JMenuItem("Edit Transaksi");
+                    menuEdit.setIcon(new ActionButtonIcon(ActionIconType.EDIT));
+                    menuEdit.setIconTextGap(8);
+                    JMenuItem menuDelete = new JMenuItem("Hapus Transaksi");
+                    menuDelete.setIcon(new ActionButtonIcon(ActionIconType.DELETE));
+                    menuDelete.setIconTextGap(8);
                     
                     menuEdit.addActionListener(ae -> openEditTransactionDialog(id));
                     menuDelete.addActionListener(ae -> deleteTransaction(id));
@@ -3167,19 +3266,31 @@ public class DashboardForm extends JFrame {
         chartCard.setLayout(new BorderLayout());
         chartCard.setPreferredSize(new Dimension(0, 260));
         
-        JPanel chartHeader = new JPanel(new BorderLayout());
+        JPanel chartHeader = new JPanel(new GridBagLayout());
         chartHeader.setOpaque(false);
+        chartHeader.setBorder(new EmptyBorder(0, 0, 10, 0));
+        GridBagConstraints chgbc = new GridBagConstraints();
+        chgbc.gridy = 0;
+        chgbc.anchor = GridBagConstraints.CENTER;
+        chgbc.fill = GridBagConstraints.HORIZONTAL;
+
         JLabel lblChartTitle = new JLabel("Rincian Pengeluaran");
         lblChartTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblChartTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        chartHeader.add(lblChartTitle, BorderLayout.WEST);
+        lblChartTitle.setVerticalAlignment(SwingConstants.CENTER);
+        chgbc.gridx = 0;
+        chgbc.weightx = 1.0;
+        chartHeader.add(lblChartTitle, chgbc);
         
-        JPanel chartLegend = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel chartLegend = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
         chartLegend.setOpaque(false);
+        chartLegend.setPreferredSize(new Dimension(260, 22));
         chartLegend.add(createLegendItem("Operasional", UIConstants.PRIMARY_BLUE));
         chartLegend.add(createLegendItem("Pemasaran", new Color(16, 185, 129)));
         chartLegend.add(createLegendItem("Gaji", new Color(245, 158, 11)));
-        chartHeader.add(chartLegend, BorderLayout.EAST);
+        chgbc.gridx = 1;
+        chgbc.weightx = 0.0;
+        chartHeader.add(chartLegend, chgbc);
         
         chartCard.add(chartHeader, BorderLayout.NORTH);
         
@@ -3288,8 +3399,10 @@ public class DashboardForm extends JFrame {
     }
 
     private static JPanel createLegendItem(String labelText, Color color) {
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        JPanel pnl = new JPanel(new GridBagLayout());
         pnl.setOpaque(false);
+        pnl.setPreferredSize(new Dimension(
+                labelText.equals("Operasional") ? 82 : labelText.equals("Pemasaran") ? 78 : 42, 22));
         
         JPanel dot = new JPanel() {
             @Override
@@ -3307,9 +3420,16 @@ public class DashboardForm extends JFrame {
         JLabel lbl = new JLabel(labelText);
         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lbl.setForeground(UIConstants.TEXT_SECONDARY);
-        
-        pnl.add(dot);
-        pnl.add(lbl);
+        lbl.setVerticalAlignment(SwingConstants.CENTER);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(0, 0, 0, 6);
+        pnl.add(dot, gbc);
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        pnl.add(lbl, gbc);
         return pnl;
     }
 
@@ -3342,18 +3462,24 @@ public class DashboardForm extends JFrame {
                 try {
                     conn = DatabaseConnection.getConnection();
                     
-                    String sumQuery = "SELECT SUM(jumlah) FROM pengeluaran WHERE user_id = ?";
+                    String sumQuery = "SELECT jenis, COALESCE(SUM(jumlah),0) AS total " +
+                            "FROM pengeluaran WHERE user_id = ? GROUP BY jenis";
                     stmt = conn.prepareStatement(sumQuery);
                     stmt.setInt(1, userId);
                     rs = stmt.executeQuery();
-                    if (rs.next()) {
-                        data.totalExpenses = rs.getDouble(1);
+                    while (rs.next()) {
+                        if ("PEMASUKAN".equals(rs.getString("jenis"))) {
+                            data.totalIncome = rs.getDouble("total");
+                        } else {
+                            data.totalExpenses = rs.getDouble("total");
+                        }
                     }
                     rs.close();
                     stmt.close();
                     
                     StringBuilder querySb = new StringBuilder(
-                        "SELECT p.id, p.judul, k.nama AS kat_nama, k.icon AS kat_icon, p.tanggal, p.jumlah " +
+                        "SELECT p.id, p.judul, k.nama AS kat_nama, k.icon AS kat_icon, " +
+                        "p.tanggal, p.jumlah, p.jenis " +
                         "FROM pengeluaran p " +
                         "LEFT JOIN kategori k ON p.kategori_id = k.id " +
                         "WHERE p.user_id = ?"
@@ -3392,8 +3518,9 @@ public class DashboardForm extends JFrame {
                         item.kategoriIcon = rs.getString("kat_icon");
                         item.tanggal = rs.getDate("tanggal");
                         item.jumlah = rs.getDouble("jumlah");
+                        item.jenis = rs.getString("jenis");
                         
-                        if (item.kategoriIcon == null) item.kategoriIcon = "ðŸ“¦";
+                        if (item.kategoriIcon == null) item.kategoriIcon = "\uD83D\uDCE6";
                         if (item.kategoriNama == null) item.kategoriNama = "Lainnya";
                         
                         data.expenses.add(item);
@@ -3416,24 +3543,37 @@ public class DashboardForm extends JFrame {
                     DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("id", "ID"));
                     DecimalFormat df = new DecimalFormat("###,###,###", symbols);
                     
-                    double saldoBersih = 0;
+                    double saldoBersih = data.totalIncome - data.totalExpenses;
                     tStatSaldo.setValue("Rp" + df.format(saldoBersih));
                     tStatPengeluaran.setValue("- Rp" + df.format(data.totalExpenses));
+                    if (tDetailChart != null) {
+                        ArrayList<TransactionItem> expenseOnly = new ArrayList<>();
+                        for (TransactionItem item : data.expenses) {
+                            if (!"PEMASUKAN".equals(item.jenis)) {
+                                expenseOnly.add(item);
+                            }
+                        }
+                        tDetailChart.setTransactions(expenseOnly);
+                    }
                     
                     tTableModel.setRowCount(0);
                     SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy", new Locale("id", "ID"));
                     
                     ArrayList<Object[]> rows = new ArrayList<>();
                     
-                    if (selectedJenis.equals("Semua") || selectedJenis.equals("Pengeluaran")) {
-                        for (TransactionItem tr : data.expenses) {
+                    for (TransactionItem tr : data.expenses) {
+                        boolean isIncome = "PEMASUKAN".equals(tr.jenis);
+                        boolean typeMatches = selectedJenis.equals("Semua")
+                                || (selectedJenis.equals("Pemasukan") && isIncome)
+                                || (selectedJenis.equals("Pengeluaran") && !isIncome);
+                        if (typeMatches) {
                             rows.add(new Object[]{
                                 tr.id,
                                 sdf.format(tr.tanggal),
-                                tr.kategoriIcon + " " + tr.kategoriNama,
+                                tr.kategoriNama,
                                 tr.judul,
-                                "-Rp" + df.format(tr.jumlah),
-                                "âœï¸ Edit / ðŸ—‘ï¸ Hapus"
+                                (isIncome ? "+Rp" : "-Rp") + df.format(tr.jumlah),
+                                "Edit    Hapus"
                             });
                         }
                     }
@@ -3454,94 +3594,345 @@ public class DashboardForm extends JFrame {
 
     private static class TransaksiData {
         double totalExpenses = 0;
+        double totalIncome = 0;
         ArrayList<TransactionItem> expenses = new ArrayList<>();
     }
 
     // ==========================================
     // INNER CLASSES: SIDEBAR MENU ITEM, MINI STAT CARD, DETAIL BAR CHART
     // ==========================================
+    private enum SidebarIconType {
+        DASHBOARD, TRANSACTION, BUDGET, REPORT, SETTINGS, HELP
+    }
+
+    private enum ActionIconType {
+        CALENDAR, EXPORT, CATEGORY, FILTER, DOWNLOAD, EDIT, DELETE,
+        TRANSPORT, FOOD, HOME, ENTERTAINMENT
+    }
+
+    private static class ActionButtonIcon implements Icon {
+        private final ActionIconType type;
+
+        ActionButtonIcon(ActionIconType type) {
+            this.type = type;
+        }
+
+        @Override
+        public int getIconWidth() {
+            return 16;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 16;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            Color iconColor = component.getForeground();
+            if (iconColor == null) {
+                iconColor = new Color(51, 65, 85);
+            }
+            g2.setColor(component.isEnabled() ? iconColor : new Color(148, 163, 184));
+            g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            if (type == ActionIconType.CALENDAR) {
+                g2.drawRoundRect(x + 1, y + 2, 14, 13, 2, 2);
+                g2.drawLine(x + 1, y + 6, x + 15, y + 6);
+                g2.drawLine(x + 5, y, x + 5, y + 4);
+                g2.drawLine(x + 11, y, x + 11, y + 4);
+            } else if (type == ActionIconType.EXPORT) {
+                g2.drawLine(x + 8, y + 1, x + 8, y + 11);
+                g2.drawLine(x + 4, y + 5, x + 8, y + 1);
+                g2.drawLine(x + 12, y + 5, x + 8, y + 1);
+                g2.drawRoundRect(x + 2, y + 9, 12, 6, 2, 2);
+            } else if (type == ActionIconType.CATEGORY) {
+                g2.drawRoundRect(x + 1, y + 3, 14, 11, 2, 2);
+                g2.drawLine(x + 1, y + 7, x + 15, y + 7);
+                g2.fillOval(x + 4, y + 10, 2, 2);
+            } else if (type == ActionIconType.FILTER) {
+                g2.drawLine(x + 1, y + 2, x + 15, y + 2);
+                g2.drawLine(x + 3, y + 6, x + 13, y + 6);
+                g2.drawLine(x + 5, y + 10, x + 11, y + 10);
+                g2.drawLine(x + 7, y + 14, x + 9, y + 14);
+            } else if (type == ActionIconType.DOWNLOAD) {
+                g2.drawLine(x + 8, y + 1, x + 8, y + 11);
+                g2.drawLine(x + 4, y + 7, x + 8, y + 11);
+                g2.drawLine(x + 12, y + 7, x + 8, y + 11);
+                g2.drawLine(x + 2, y + 15, x + 14, y + 15);
+            } else if (type == ActionIconType.EDIT) {
+                g2.drawLine(x + 3, y + 12, x + 11, y + 4);
+                g2.drawLine(x + 5, y + 14, x + 13, y + 6);
+                g2.drawLine(x + 3, y + 12, x + 2, y + 15);
+                g2.drawLine(x + 11, y + 4, x + 13, y + 6);
+            } else if (type == ActionIconType.DELETE) {
+                g2.drawRoundRect(x + 4, y + 6, 8, 9, 1, 1);
+                g2.drawLine(x + 2, y + 5, x + 14, y + 5);
+                g2.drawLine(x + 6, y + 3, x + 10, y + 3);
+                g2.drawLine(x + 7, y + 8, x + 7, y + 13);
+                g2.drawLine(x + 10, y + 8, x + 10, y + 13);
+            } else if (type == ActionIconType.TRANSPORT) {
+                g2.drawRoundRect(x + 2, y + 2, 12, 11, 2, 2);
+                g2.drawLine(x + 3, y + 7, x + 13, y + 7);
+                g2.fillOval(x + 4, y + 13, 3, 3);
+                g2.fillOval(x + 10, y + 13, 3, 3);
+            } else if (type == ActionIconType.FOOD) {
+                g2.drawLine(x + 4, y + 2, x + 4, y + 14);
+                g2.drawLine(x + 2, y + 2, x + 2, y + 7);
+                g2.drawLine(x + 6, y + 2, x + 6, y + 7);
+                g2.drawArc(x + 9, y + 2, 5, 8, 90, 180);
+                g2.drawLine(x + 11, y + 6, x + 11, y + 14);
+            } else if (type == ActionIconType.HOME) {
+                int[] xs = {x + 2, x + 8, x + 14};
+                int[] ys = {y + 8, y + 2, y + 8};
+                g2.drawPolyline(xs, ys, 3);
+                g2.drawRect(x + 4, y + 8, 8, 7);
+            } else if (type == ActionIconType.ENTERTAINMENT) {
+                g2.drawRoundRect(x + 1, y + 5, 14, 8, 4, 4);
+                g2.drawLine(x + 5, y + 7, x + 5, y + 11);
+                g2.drawLine(x + 3, y + 9, x + 7, y + 9);
+                g2.fillOval(x + 10, y + 7, 2, 2);
+                g2.fillOval(x + 12, y + 10, 2, 2);
+            }
+            g2.dispose();
+        }
+    }
+
+    private static class LeadingIconComboRenderer extends DefaultListCellRenderer {
+        private final Icon icon;
+
+        LeadingIconComboRenderer(ActionIconType type) {
+            icon = new ActionButtonIcon(type);
+        }
+
+        @Override
+        public Component getListCellRendererComponent(
+                JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            JLabel label = (JLabel) super.getListCellRendererComponent(
+                    list, value, index, isSelected, cellHasFocus);
+            label.setIcon(icon);
+            label.setIconTextGap(8);
+            label.setBorder(new EmptyBorder(0, 8, 0, 8));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            return label;
+        }
+    }
+
+    private static class TransactionActionRenderer extends JPanel
+            implements javax.swing.table.TableCellRenderer {
+
+        private final JLabel editLabel;
+        private final JLabel deleteLabel;
+
+        TransactionActionRenderer() {
+            setLayout(new GridBagLayout());
+            setOpaque(true);
+
+            editLabel = createActionLabel("Edit", ActionIconType.EDIT, UIConstants.PRIMARY_BLUE);
+            deleteLabel = createActionLabel("Hapus", ActionIconType.DELETE, new Color(220, 38, 38));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.anchor = GridBagConstraints.CENTER;
+            gbc.insets = new Insets(0, 0, 0, 9);
+            add(editLabel, gbc);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(0, 9, 0, 0);
+            add(deleteLabel, gbc);
+        }
+
+        private JLabel createActionLabel(String text, ActionIconType type, Color color) {
+            JLabel label = new JLabel(text, new ActionButtonIcon(type), SwingConstants.LEFT);
+            label.setIconTextGap(6);
+            label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            label.setForeground(color);
+            label.setVerticalAlignment(SwingConstants.CENTER);
+            label.setVerticalTextPosition(SwingConstants.CENTER);
+            return label;
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setBackground(isSelected ? new Color(241, 245, 249) : Color.WHITE);
+            return this;
+        }
+    }
+
+    private static class TransactionCategoryRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+            String category = value == null ? "" : value.toString();
+            label.setText(category);
+            label.setIcon(new ActionButtonIcon(categoryIconType(category)));
+            label.setIconTextGap(8);
+            label.setBorder(new EmptyBorder(0, 20, 0, 20));
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            label.setForeground(UIConstants.TEXT_PRIMARY);
+            label.setBackground(isSelected ? new Color(241, 245, 249) : Color.WHITE);
+            label.setHorizontalAlignment(SwingConstants.LEFT);
+            label.setVerticalAlignment(SwingConstants.CENTER);
+            return label;
+        }
+
+        private static ActionIconType categoryIconType(String category) {
+            String name = category.toLowerCase(new Locale("id", "ID"));
+            if (name.contains("transport")) return ActionIconType.TRANSPORT;
+            if (name.contains("makan") || name.contains("kuliner")) return ActionIconType.FOOD;
+            if (name.contains("rumah") || name.contains("tempat tinggal")) return ActionIconType.HOME;
+            if (name.contains("hiburan")) return ActionIconType.ENTERTAINMENT;
+            return ActionIconType.CATEGORY;
+        }
+    }
+
     private class SidebarMenuItem extends JPanel {
         private final String title;
-        private final String iconText;
+        private final SidebarIconType iconType;
         private boolean active;
+        private boolean hovered;
         private final JLabel label;
-        private final JLabel iconLabel;
+        private final SidebarIcon iconView;
 
-        public SidebarMenuItem(String title, String iconText, boolean active) {
+        public SidebarMenuItem(String title, SidebarIconType iconType, boolean active) {
             this.title = title;
-            this.iconText = iconText;
+            this.iconType = iconType;
             this.active = active;
             setOpaque(false);
-            setLayout(new BorderLayout(15, 0));
-            setPreferredSize(new Dimension(240, 44));
-            setMaximumSize(new Dimension(240, 44));
-            setBorder(new EmptyBorder(0, 20, 0, 10));
+            setLayout(new BorderLayout(14, 0));
+            setPreferredSize(new Dimension(260, 44));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+            setBorder(new EmptyBorder(0, 24, 0, 18));
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-            iconLabel = new JLabel(iconText, SwingConstants.CENTER) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(active ? UIConstants.PRIMARY_BLUE : new Color(30, 41, 59));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            iconLabel.setPreferredSize(new Dimension(26, 26));
-            iconLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 13));
-            iconLabel.setForeground(Color.WHITE);
-            add(iconLabel, BorderLayout.WEST);
+            iconView = new SidebarIcon();
+            iconView.setPreferredSize(new Dimension(24, 24));
+            iconView.setOpaque(false);
+            add(iconView, BorderLayout.WEST);
 
             label = new JLabel(title);
             label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
             label.setForeground(active ? Color.WHITE : new Color(148, 163, 184));
             add(label, BorderLayout.CENTER);
 
-            addMouseListener(new MouseAdapter() {
+            MouseAdapter menuListener = new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    if (!active) {
-                        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                        label.setForeground(Color.WHITE);
-                        repaint();
-                    }
+                    hovered = true;
+                    updateAppearance();
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    if (!active) {
-                        label.setForeground(new Color(148, 163, 184));
-                        repaint();
+                    Point pointer = SwingUtilities.convertPoint(
+                            e.getComponent(), e.getPoint(), SidebarMenuItem.this);
+                    if (!contains(pointer)) {
+                        hovered = false;
+                        updateAppearance();
                     }
                 }
                 
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    handleMenuClick(title);
+                    if (SwingUtilities.isLeftMouseButton(e)) {
+                        handleMenuClick(title);
+                    }
                 }
-            });
+            };
+
+            addMouseListener(menuListener);
+            label.addMouseListener(menuListener);
+            iconView.addMouseListener(menuListener);
         }
 
         public void setActive(boolean active) {
             this.active = active;
+            updateAppearance();
+        }
+
+        private void updateAppearance() {
             label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
-            label.setForeground(active ? Color.WHITE : new Color(148, 163, 184));
-            iconLabel.repaint();
+            label.setForeground(active || hovered ? Color.WHITE : new Color(148, 163, 184));
+            iconView.repaint();
             repaint();
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            if (active) {
+            if (active || hovered) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(30, 41, 59));
-                g2.fillRoundRect(8, 2, getWidth() - 16, getHeight() - 4, 8, 8);
+                g2.setColor(active ? new Color(19, 52, 96) : new Color(30, 41, 59));
+                g2.fillRect(12, 0, getWidth() - 24, getHeight());
                 
-                g2.setColor(UIConstants.PRIMARY_BLUE);
-                g2.fillRoundRect(8, 8, 4, getHeight() - 16, 2, 2);
+                if (active) {
+                    g2.setColor(new Color(30, 126, 229));
+                    g2.fillRect(12, 0, 4, getHeight());
+                }
+                g2.dispose();
+            }
+        }
+
+        private class SidebarIcon extends JComponent {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+                g2.setColor(active || hovered ? Color.WHITE : new Color(148, 163, 184));
+                g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                int s = 16;
+                int x = (getWidth() - s) / 2;
+                int y = (getHeight() - s) / 2;
+                switch (iconType) {
+                    case DASHBOARD:
+                        g2.drawRoundRect(x, y, 6, 6, 1, 1);
+                        g2.drawRoundRect(x + 10, y, 6, 6, 1, 1);
+                        g2.drawRoundRect(x, y + 10, 6, 6, 1, 1);
+                        g2.drawRoundRect(x + 10, y + 10, 6, 6, 1, 1);
+                        break;
+                    case TRANSACTION:
+                        g2.drawRoundRect(x, y + 3, s, 12, 3, 3);
+                        g2.drawLine(x + 2, y + 7, x + 14, y + 7);
+                        g2.fillOval(x + 12, y + 10, 2, 2);
+                        break;
+                    case BUDGET:
+                        g2.drawRoundRect(x, y + 1, s, 14, 2, 2);
+                        g2.drawLine(x + 4, y + 11, x + 4, y + 13);
+                        g2.drawLine(x + 8, y + 8, x + 8, y + 13);
+                        g2.drawLine(x + 12, y + 5, x + 12, y + 13);
+                        break;
+                    case REPORT:
+                        g2.drawRoundRect(x + 1, y, 14, 16, 2, 2);
+                        g2.drawLine(x + 4, y + 5, x + 12, y + 5);
+                        g2.drawLine(x + 4, y + 9, x + 12, y + 9);
+                        g2.drawLine(x + 4, y + 13, x + 9, y + 13);
+                        break;
+                    case SETTINGS:
+                        g2.drawOval(x + 2, y + 2, 12, 12);
+                        g2.drawOval(x + 6, y + 6, 4, 4);
+                        for (int i = 0; i < 8; i++) {
+                            double angle = i * Math.PI / 4.0;
+                            int x1 = x + 8 + (int) Math.round(Math.cos(angle) * 7);
+                            int y1 = y + 8 + (int) Math.round(Math.sin(angle) * 7);
+                            int x2 = x + 8 + (int) Math.round(Math.cos(angle) * 9);
+                            int y2 = y + 8 + (int) Math.round(Math.sin(angle) * 9);
+                            g2.drawLine(x1, y1, x2, y2);
+                        }
+                        break;
+                    case HELP:
+                        g2.drawOval(x, y, s, s);
+                        g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                        g2.drawString("?", x + 5, y + 12);
+                        break;
+                    default:
+                        break;
+                }
                 g2.dispose();
             }
         }
@@ -3585,11 +3976,60 @@ public class DashboardForm extends JFrame {
     }
 
     private static class DetailBarChart extends JComponent {
-        private final double[] values = { 65.0, 85.0, 30.0, 70.0, 95.0, 45.0 };
-        private final String[] labels = { "MEI", "JUN", "JUL", "AGU", "SEP", "OKT" };
+        private final double[] values = new double[6];
+        private final String[] labels = new String[6];
         
         public DetailBarChart() {
             setPreferredSize(new Dimension(0, 180));
+            updateMonthLabels();
+        }
+
+        public void setTransactions(ArrayList<TransactionItem> transactions) {
+            java.util.Arrays.fill(values, 0.0);
+            updateMonthLabels();
+
+            Calendar firstMonth = Calendar.getInstance();
+            firstMonth.set(Calendar.DAY_OF_MONTH, 1);
+            firstMonth.add(Calendar.MONTH, -(values.length - 1));
+            firstMonth.set(Calendar.HOUR_OF_DAY, 0);
+            firstMonth.set(Calendar.MINUTE, 0);
+            firstMonth.set(Calendar.SECOND, 0);
+            firstMonth.set(Calendar.MILLISECOND, 0);
+
+            for (TransactionItem transaction : transactions) {
+                if (transaction.tanggal == null) continue;
+
+                Calendar transactionMonth = Calendar.getInstance();
+                transactionMonth.setTime(transaction.tanggal);
+                int monthDifference =
+                        (transactionMonth.get(Calendar.YEAR) - firstMonth.get(Calendar.YEAR)) * 12
+                        + transactionMonth.get(Calendar.MONTH) - firstMonth.get(Calendar.MONTH);
+                if (monthDifference >= 0 && monthDifference < values.length) {
+                    values[monthDifference] += transaction.jumlah;
+                }
+            }
+
+            double maximum = 0.0;
+            for (double value : values) {
+                maximum = Math.max(maximum, value);
+            }
+            if (maximum > 0.0) {
+                for (int i = 0; i < values.length; i++) {
+                    values[i] = (values[i] / maximum) * 100.0;
+                }
+            }
+            repaint();
+        }
+
+        private void updateMonthLabels() {
+            Calendar month = Calendar.getInstance();
+            month.set(Calendar.DAY_OF_MONTH, 1);
+            month.add(Calendar.MONTH, -(labels.length - 1));
+            SimpleDateFormat monthFormat = new SimpleDateFormat("MMM", new Locale("id", "ID"));
+            for (int i = 0; i < labels.length; i++) {
+                labels[i] = monthFormat.format(month.getTime()).toUpperCase(new Locale("id", "ID"));
+                month.add(Calendar.MONTH, 1);
+            }
         }
         
         @Override
@@ -3619,8 +4059,10 @@ public class DashboardForm extends JFrame {
                 int filledHeight = (int) (chartHeight * percentage);
                 int filledY = y + (chartHeight - filledHeight);
                 
-                g2.setColor(UIConstants.PRIMARY_BLUE);
-                g2.fillRoundRect(x, filledY, barWidth, filledHeight, 8, 8);
+                if (filledHeight > 0) {
+                    g2.setColor(UIConstants.PRIMARY_BLUE);
+                    g2.fillRoundRect(x, filledY, barWidth, filledHeight, 8, 8);
+                }
                 
                 g2.setColor(UIConstants.TEXT_SECONDARY);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
@@ -3778,7 +4220,7 @@ public class DashboardForm extends JFrame {
                     int id = rs.getInt("id");
                     String name = rs.getString("nama");
                     String icon = rs.getString("icon");
-                    if (icon == null) icon = "ðŸ“¦";
+                    if (icon == null) icon = "\uD83D\uDCE6";
                     comboKategori.addItem(new KategoriComboItem(id, name, icon));
                 }
             } catch (SQLException e) {
