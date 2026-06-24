@@ -74,13 +74,14 @@ INSERT INTO kategori (nama, icon, warna, user_id) VALUES
 ('Pendidikan', '📚', '#6366F1', 1),
 ('Lainnya', '📦', '#6B7280', 1);
 
--- ============================================================
--- Contoh data pengeluaran untuk demo
--- ============================================================
-INSERT INTO pengeluaran (user_id, kategori_id, judul, jumlah, tanggal, catatan) VALUES
-(1, 1, 'Makan siang kantor', 35000.00, CURDATE(), 'Nasi goreng + es teh'),
-(1, 2, 'Bensin motor', 50000.00, CURDATE(), 'Full tank'),
-(1, 4, 'Listrik bulan ini', 350000.00, CURDATE(), 'Tagihan PLN'),
-(1, 3, 'Belanja bulanan', 500000.00, CURDATE(), 'Supermarket');
+-- Data transaksi sengaja dikosongkan agar angka awal aplikasi bernilai 0.
+DELETE FROM pengeluaran
+WHERE user_id = 1
+  AND (
+    (judul = 'Makan siang kantor' AND jumlah = 35000.00)
+    OR (judul = 'Bensin motor' AND jumlah = 50000.00)
+    OR (judul = 'Listrik bulan ini' AND jumlah = 350000.00)
+    OR (judul = 'Belanja bulanan' AND jumlah = 500000.00)
+  );
 
 SELECT '✅ Database fintrack_pro berhasil dibuat!' AS status;

@@ -1,4 +1,4 @@
-package com.fintrackpro.ui;
+﻿package com.fintrackpro.ui;
 
 import com.fintrackpro.ui.components.RoundedButton;
 import com.fintrackpro.ui.components.RoundedTextField;
@@ -66,7 +66,7 @@ public class DashboardForm extends JFrame {
     private String selectedJenis = "Semua";
 
     // Sidebar items
-    private SidebarMenuItem itemDasbor;
+    private SidebarMenuItem itemDashboard;
     private SidebarMenuItem itemTransaksi;
     private SidebarMenuItem itemAnggaran;
     private SidebarMenuItem itemLaporan;
@@ -101,7 +101,7 @@ public class DashboardForm extends JFrame {
     }
 
     private void initializeFrame() {
-        setTitle("FinTrack Pro - Ringkasan Dasbor");
+        setTitle("FinTrack Pro - Ringkasan Dashborad");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
         setMinimumSize(new Dimension(1080, 750));
@@ -180,12 +180,12 @@ public class DashboardForm extends JFrame {
         menuContainer.setOpaque(false);
         menuContainer.setLayout(new BoxLayout(menuContainer, BoxLayout.Y_AXIS));
         
-        itemDasbor = new SidebarMenuItem("Dasbor", "📊", true);
-        itemTransaksi = new SidebarMenuItem("Transaksi", "💵", false);
-        itemAnggaran = new SidebarMenuItem("Anggaran", "🪙", false);
-        itemLaporan = new SidebarMenuItem("Laporan", "📁", false);
+        itemDashboard = new SidebarMenuItem("Dashboard", "â–¦", true);
+        itemTransaksi = new SidebarMenuItem("Transaksi", "$", false);
+        itemAnggaran = new SidebarMenuItem("Anggaran", "%", false);
+        itemLaporan = new SidebarMenuItem("Laporan", "â‰¡", false);
         
-        menuContainer.add(itemDasbor);
+        menuContainer.add(itemDashboard);
         menuContainer.add(Box.createVerticalStrut(8));
         menuContainer.add(itemTransaksi);
         menuContainer.add(Box.createVerticalStrut(8));
@@ -198,7 +198,7 @@ public class DashboardForm extends JFrame {
         // Button + Transaksi Baru
         sgbc.gridy++;
         sgbc.insets = new Insets(30, 20, 30, 20);
-        RoundedButton btnAddTransaction = new RoundedButton("＋ Transaksi Baru");
+        RoundedButton btnAddTransaction = new RoundedButton("ï¼‹ Transaksi Baru");
         btnAddTransaction.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnAddTransaction.addActionListener(e -> openAddTransactionDialog());
         sidebarPanel.add(btnAddTransaction, sgbc);
@@ -216,8 +216,8 @@ public class DashboardForm extends JFrame {
         bottomMenuContainer.setOpaque(false);
         bottomMenuContainer.setLayout(new BoxLayout(bottomMenuContainer, BoxLayout.Y_AXIS));
         
-        itemPengaturan = new SidebarMenuItem("Pengaturan", "⚙️", false);
-        itemBantuan = new SidebarMenuItem("Bantuan", "❓", false);
+        itemPengaturan = new SidebarMenuItem("Pengaturan", "âš™", false);
+        itemBantuan = new SidebarMenuItem("Bantuan", "?", false);
         
         bottomMenuContainer.add(itemPengaturan);
         bottomMenuContainer.add(Box.createVerticalStrut(8));
@@ -258,12 +258,12 @@ public class DashboardForm extends JFrame {
         profileWrapper.setOpaque(false);
         
         // Notification & History icons
-        JLabel bellIcon = new JLabel("🔔");
+        JLabel bellIcon = new JLabel("ðŸ””");
         bellIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         bellIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         profileWrapper.add(bellIcon);
         
-        JLabel historyIcon = new JLabel("⏳");
+        JLabel historyIcon = new JLabel("â³");
         historyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
         historyIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         profileWrapper.add(historyIcon);
@@ -289,7 +289,6 @@ public class DashboardForm extends JFrame {
         
         namePanel.add(lblName);
         namePanel.add(lblRole);
-        profileWrapper.add(namePanel);
 
         // Avatar
         JLabel avatarLabel = new JLabel() {
@@ -319,7 +318,31 @@ public class DashboardForm extends JFrame {
             }
         };
         avatarLabel.setPreferredSize(new Dimension(38, 38));
-        profileWrapper.add(avatarLabel);
+
+        JLabel chevronLabel = new JLabel("â–¼");
+        chevronLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        chevronLabel.setForeground(UIConstants.TEXT_SECONDARY);
+
+        final JPanel profileMenuButton = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        profileMenuButton.setOpaque(false);
+        profileMenuButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        profileMenuButton.add(namePanel);
+        profileMenuButton.add(avatarLabel);
+        profileMenuButton.add(chevronLabel);
+
+        MouseAdapter profileDropdownListener = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showProfileDropdown(profileMenuButton);
+            }
+        };
+        profileMenuButton.addMouseListener(profileDropdownListener);
+        namePanel.addMouseListener(profileDropdownListener);
+        lblName.addMouseListener(profileDropdownListener);
+        lblRole.addMouseListener(profileDropdownListener);
+        avatarLabel.addMouseListener(profileDropdownListener);
+        chevronLabel.addMouseListener(profileDropdownListener);
+        profileWrapper.add(profileMenuButton);
         
         topBar.add(profileWrapper, BorderLayout.EAST);
         mainContainer.add(topBar, BorderLayout.NORTH);
@@ -363,7 +386,7 @@ public class DashboardForm extends JFrame {
         titleTextPanel.setOpaque(false);
         titleTextPanel.setLayout(new BoxLayout(titleTextPanel, BoxLayout.Y_AXIS));
         
-        JLabel lblMainTitle = new JLabel("Ringkasan Dasbor");
+        JLabel lblMainTitle = new JLabel("Ringkasan Dashboard");
         lblMainTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lblMainTitle.setForeground(UIConstants.TEXT_PRIMARY);
         titleTextPanel.add(lblMainTitle);
@@ -379,11 +402,11 @@ public class DashboardForm extends JFrame {
         JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actionButtonsPanel.setOpaque(false);
         
-        JButton btnPeriod = new JButton("📅  30 Hari Terakhir");
+        JButton btnPeriod = new JButton("ðŸ“…  30 Hari Terakhir");
         styleSecondaryButton(btnPeriod);
         actionButtonsPanel.add(btnPeriod);
         
-        JButton btnExport = new JButton("📤  Ekspor Laporan");
+        JButton btnExport = new JButton("ðŸ“¤  Ekspor Laporan");
         styleSecondaryButton(btnExport);
         actionButtonsPanel.add(btnExport);
         
@@ -399,9 +422,9 @@ public class DashboardForm extends JFrame {
         JPanel statCardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         statCardsPanel.setOpaque(false);
         
-        totalKekayaanCard = new StatCard("TOTAL KEKAYAAN BERSIH", "Rp0", "+0.0%", "Target: Rp500Jt", new Color(34, 197, 94), true, 0);
-        pendapatanCard = new StatCard("PENDAPATAN BULANAN", "Rp0", "↗", "Pembayaran berikutnya dalam 6 hari", new Color(34, 197, 94), false, 0);
-        pengeluaranCard = new StatCard("PENGELUARAN BULANAN", "Rp0", "↗", "12% lebih tinggi dari bulan lalu", new Color(239, 68, 68), false, 0);
+        totalKekayaanCard = new StatCard("TOTAL KEKAYAAN BERSIH", "Rp0", "0%", "Target: Rp0", new Color(34, 197, 94), true, 0);
+        pendapatanCard = new StatCard("PENDAPATAN BULANAN", "Rp0", "0%", "", new Color(34, 197, 94), false, 0);
+        pengeluaranCard = new StatCard("PENGELUARAN BULANAN", "Rp0", "0%", "0% dari bulan lalu", new Color(239, 68, 68), false, 0);
         
         statCardsPanel.add(totalKekayaanCard);
         statCardsPanel.add(pendapatanCard);
@@ -440,9 +463,9 @@ public class DashboardForm extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(Color.WHITE);
+                g2.setColor(new Color(15, 23, 42));
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
-                g2.setColor(new Color(229, 231, 235));
+                g2.setColor(new Color(30, 41, 59));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
                 g2.dispose();
                 super.paintComponent(g);
@@ -460,22 +483,22 @@ public class DashboardForm extends JFrame {
         
         JLabel lblAssetTitle = new JLabel("Alokasi Aset");
         lblAssetTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblAssetTitle.setForeground(UIConstants.TEXT_PRIMARY);
+        lblAssetTitle.setForeground(Color.WHITE);
         assetsCard.add(lblAssetTitle, agbc);
         
         agbc.gridy++;
         agbc.insets = new Insets(20, 0, 0, 0);
-        sahamPanel = new AssetProgressPanel("Saham", 0, UIConstants.PRIMARY_BLUE, "📈");
+        sahamPanel = new AssetProgressPanel("Saham", 0, UIConstants.PRIMARY_BLUE, "â†‘");
         assetsCard.add(sahamPanel, agbc);
         
         agbc.gridy++;
         agbc.insets = new Insets(15, 0, 0, 0);
-        kasPanel = new AssetProgressPanel("Kas", 0, new Color(16, 185, 129), "💵");
+        kasPanel = new AssetProgressPanel("Kas", 0, new Color(16, 185, 129), "$");
         assetsCard.add(kasPanel, agbc);
         
         agbc.gridy++;
         agbc.insets = new Insets(15, 0, 0, 0);
-        lainnyaPanel = new AssetProgressPanel("Lainnya", 0, new Color(107, 114, 128), "💎");
+        lainnyaPanel = new AssetProgressPanel("Lainnya", 0, new Color(107, 114, 128), "â—†");
         assetsCard.add(lainnyaPanel, agbc);
         
         agbc.gridy++;
@@ -485,9 +508,9 @@ public class DashboardForm extends JFrame {
         agbc.gridy++;
         agbc.weighty = 0.0;
         agbc.insets = new Insets(15, 0, 0, 0);
-        JLabel lblAssetFooter = new JLabel("Lihat detail portofolio lengkap →");
+        JLabel lblAssetFooter = new JLabel("Lihat detail portofolio lengkap â†’");
         lblAssetFooter.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblAssetFooter.setForeground(UIConstants.PRIMARY_BLUE);
+        lblAssetFooter.setForeground(new Color(147, 197, 253));
         lblAssetFooter.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assetsCard.add(lblAssetFooter, agbc);
         
@@ -596,6 +619,35 @@ public class DashboardForm extends JFrame {
         contentContainer.add(bottomCard, cgbc);
     }
 
+    private void showProfileDropdown(Component invoker) {
+        JPopupMenu profileMenu = new JPopupMenu();
+        profileMenu.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true));
+
+        JMenuItem logoutItem = new JMenuItem("Logout");
+        logoutItem.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        logoutItem.setForeground(new Color(239, 68, 68));
+        logoutItem.setBorder(new EmptyBorder(8, 14, 8, 40));
+        logoutItem.addActionListener(e -> logout());
+
+        profileMenu.add(logoutItem);
+        profileMenu.show(invoker, 0, invoker.getHeight() + 6);
+    }
+
+    private void logout() {
+        int result = JOptionPane.showConfirmDialog(
+            this,
+            "Keluar dari akun ini?",
+            "Konfirmasi Logout",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (result == JOptionPane.YES_OPTION) {
+            new LoginForm().setVisible(true);
+            dispose();
+        }
+    }
+
     // Legacy sidebar item builder removed in favor of SidebarMenuItem component
 
     private void styleSecondaryButton(JButton btn) {
@@ -648,6 +700,19 @@ public class DashboardForm extends JFrame {
                     rs.close();
                     stmt.close();
 
+                    String previousMonthQuery = "SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran " +
+                            "WHERE user_id = ? " +
+                            "AND MONTH(tanggal) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) " +
+                            "AND YEAR(tanggal) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))";
+                    stmt = conn.prepareStatement(previousMonthQuery);
+                    stmt.setInt(1, userId);
+                    rs = stmt.executeQuery();
+                    if (rs.next()) {
+                        data.previousMonthExpenses = rs.getDouble(1);
+                    }
+                    rs.close();
+                    stmt.close();
+
                     // 2. Get Weekly Expenditures (Mon to Sun)
                     String weeklyQuery = "SELECT DAYOFWEEK(tanggal) as day, SUM(jumlah) as total " +
                             "FROM pengeluaran " +
@@ -694,7 +759,7 @@ public class DashboardForm extends JFrame {
                         item.tanggal = rs.getDate("tanggal");
                         item.jumlah = rs.getDouble("jumlah");
                         
-                        if (item.kategoriIcon == null) item.kategoriIcon = "📦";
+                        if (item.kategoriIcon == null) item.kategoriIcon = "ðŸ“¦";
                         if (item.kategoriNama == null) item.kategoriNama = "Lainnya";
                         
                         data.recentTransactions.add(item);
@@ -721,6 +786,8 @@ public class DashboardForm extends JFrame {
                     
                     // Update Stat Cards
                     pengeluaranCard.setValue("Rp" + df.format(data.monthlyExpenses));
+                    pengeluaranCard.setBadgeText(formatExpenseTrendBadge(data.monthlyExpenses, data.previousMonthExpenses));
+                    pengeluaranCard.setSubtext(formatExpenseTrendText(data.monthlyExpenses, data.previousMonthExpenses));
                     
                     // Update Chart
                     trendChart.setData(data.weeklyChartData);
@@ -747,6 +814,29 @@ public class DashboardForm extends JFrame {
         worker.execute();
     }
 
+    private String formatExpenseTrendBadge(double currentMonth, double previousMonth) {
+        if (previousMonth <= 0) {
+            return "0%";
+        }
+
+        double changePercent = ((currentMonth - previousMonth) / previousMonth) * 100.0;
+        return String.format(Locale.US, "%+.0f%%", changePercent);
+    }
+
+    private String formatExpenseTrendText(double currentMonth, double previousMonth) {
+        if (previousMonth <= 0) {
+            return "0% dari bulan lalu";
+        }
+
+        double changePercent = ((currentMonth - previousMonth) / previousMonth) * 100.0;
+        if (changePercent > 0) {
+            return String.format(Locale.US, "%.0f%% lebih tinggi dari bulan lalu", changePercent);
+        } else if (changePercent < 0) {
+            return String.format(Locale.US, "%.0f%% lebih rendah dari bulan lalu", Math.abs(changePercent));
+        }
+        return "0% dari bulan lalu";
+    }
+
     private void openAddTransactionDialog() {
         setActiveMenuItem(itemTransaksi);
         cardLayout.show(cardPanel, "TambahTransaksi");
@@ -757,6 +847,7 @@ public class DashboardForm extends JFrame {
     // Container data untuk background worker
     private static class DashboardData {
         double monthlyExpenses = 0;
+        double previousMonthExpenses = 0;
         double[] weeklyChartData = new double[7];
         ArrayList<TransactionItem> recentTransactions = new ArrayList<>();
     }
@@ -778,12 +869,14 @@ public class DashboardForm extends JFrame {
     private static class StatCard extends JPanel {
         private final String title;
         private String value;
-        private final String badgeText;
-        private final String subtext;
+        private String badgeText;
+        private String subtext;
         private final Color badgeColor;
         private final boolean hasProgress;
         private final int progressPercent;
         private JLabel valueLabel;
+        private JLabel badgeLabel;
+        private JLabel subLabel;
 
         public StatCard(String title, String value, String badgeText, String subtext, Color badgeColor, boolean hasProgress, int progressPercent) {
             this.title = title;
@@ -814,7 +907,7 @@ public class DashboardForm extends JFrame {
             headerPanel.add(titleLabel, BorderLayout.WEST);
 
             if (badgeText != null) {
-                JLabel badgeLabel = new JLabel(badgeText) {
+                badgeLabel = new JLabel(badgeText) {
                     @Override
                     protected void paintComponent(Graphics g) {
                         Graphics2D g2 = (Graphics2D) g.create();
@@ -865,14 +958,14 @@ public class DashboardForm extends JFrame {
                 track.setPreferredSize(new Dimension(0, 5));
                 progressPanel.add(track, BorderLayout.CENTER);
 
-                JLabel subLabel = new JLabel(subtext);
+                subLabel = new JLabel(subtext);
                 subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
                 subLabel.setForeground(UIConstants.TEXT_SECONDARY);
                 progressPanel.add(subLabel, BorderLayout.SOUTH);
 
                 add(progressPanel, gbc);
             } else {
-                JLabel subLabel = new JLabel(subtext);
+                subLabel = new JLabel(subtext);
                 subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
                 subLabel.setForeground(UIConstants.TEXT_SECONDARY);
                 add(subLabel, gbc);
@@ -882,6 +975,21 @@ public class DashboardForm extends JFrame {
         public void setValue(String val) {
             this.value = val;
             valueLabel.setText(val);
+        }
+
+        public void setBadgeText(String text) {
+            this.badgeText = text;
+            if (badgeLabel != null) {
+                badgeLabel.setText(text);
+                badgeLabel.repaint();
+            }
+        }
+
+        public void setSubtext(String text) {
+            this.subtext = text;
+            if (subLabel != null) {
+                subLabel.setText(text);
+            }
         }
 
         @Override
@@ -904,7 +1012,7 @@ public class DashboardForm extends JFrame {
     // Custom painted ExpenseTrendChart
     private static class ExpenseTrendChart extends JPanel {
         private double[] currentWeek = new double[7]; // Mon-Sun
-        private final double[] previousWeek = new double[]{120000, 150000, 80000, 200000, 110000, 90000, 170000}; // Mock previous week values
+        private final double[] previousWeek = new double[7];
         private final String[] days = {"SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MING"};
 
         public ExpenseTrendChart() {
@@ -1063,7 +1171,7 @@ public class DashboardForm extends JFrame {
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new Color(248, 250, 252)); // Slate 50
+                    g2.setColor(new Color(30, 41, 59));
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                     g2.dispose();
                     super.paintComponent(g);
@@ -1071,17 +1179,18 @@ public class DashboardForm extends JFrame {
             };
             icon.setPreferredSize(new Dimension(32, 32));
             icon.setHorizontalAlignment(SwingConstants.CENTER);
-            icon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 15));
+            icon.setForeground(Color.WHITE);
+            icon.setFont(new Font("Segoe UI Symbol", Font.BOLD, 15));
             top.add(icon, BorderLayout.WEST);
 
             JLabel lblName = new JLabel(name);
             lblName.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lblName.setForeground(UIConstants.TEXT_PRIMARY);
+            lblName.setForeground(Color.WHITE);
             top.add(lblName, BorderLayout.CENTER);
 
             pctLabel = new JLabel(percentage + "%");
             pctLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            pctLabel.setForeground(UIConstants.TEXT_PRIMARY);
+            pctLabel.setForeground(new Color(203, 213, 225));
             top.add(pctLabel, BorderLayout.EAST);
 
             add(top, gbc);
@@ -1097,7 +1206,7 @@ public class DashboardForm extends JFrame {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     
                     // Track
-                    g2.setColor(new Color(241, 245, 249));
+                    g2.setColor(new Color(51, 65, 85));
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
                     
                     // Bar
@@ -1151,7 +1260,7 @@ public class DashboardForm extends JFrame {
         root.gridy = 0;
         root.insets = new Insets(24, 30, 0, 30);
 
-        // ── Breadcrumb ──────────────────────────────
+        // â”€â”€ Breadcrumb â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         JPanel crumb = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         crumb.setOpaque(false);
         JLabel lbCrumb1 = new JLabel("Transactions");
@@ -1161,7 +1270,7 @@ public class DashboardForm extends JFrame {
         lbCrumb1.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) { handleMenuClick("Transaksi"); }
         });
-        JLabel lbSep = new JLabel("›");
+        JLabel lbSep = new JLabel("â€º");
         lbSep.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbSep.setForeground(UIConstants.TEXT_SECONDARY);
         JLabel lbCrumb2 = new JLabel("Transaksi Baru");
@@ -1170,7 +1279,7 @@ public class DashboardForm extends JFrame {
         crumb.add(lbCrumb1); crumb.add(lbSep); crumb.add(lbCrumb2);
         outer.add(crumb, root);
 
-        // ── Page title ──────────────────────────────
+        // â”€â”€ Page title â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         root.gridy++; root.insets = new Insets(6, 30, 0, 30);
         JPanel titleRow = new JPanel();
         titleRow.setOpaque(false);
@@ -1184,7 +1293,7 @@ public class DashboardForm extends JFrame {
         titleRow.add(lbPageTitle); titleRow.add(Box.createVerticalStrut(4)); titleRow.add(lbPageSub);
         outer.add(titleRow, root);
 
-        // ── Body: left form + right sidebar ─────────
+        // â”€â”€ Body: left form + right sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€
         root.gridy++; root.insets = new Insets(20, 30, 30, 30);
         JPanel body = new JPanel(new GridBagLayout());
         body.setOpaque(false);
@@ -1193,7 +1302,7 @@ public class DashboardForm extends JFrame {
         bl.fill = GridBagConstraints.BOTH;
         bl.gridy = 0; bl.weighty = 1.0;
 
-        // ── LEFT: FORM CARD ─────────────────────────
+        // â”€â”€ LEFT: FORM CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         bl.gridx = 0; bl.weightx = 0.62; bl.insets = new Insets(0, 0, 0, 14);
         JPanel formCard = buildRoundedWhiteCard();
         formCard.setBorder(new EmptyBorder(28, 28, 28, 28));
@@ -1321,7 +1430,7 @@ public class DashboardForm extends JFrame {
         pCat.add(new JScrollPane(ttTxtCatatan) {{ setBorder(null); }});
         formCard.add(pCat, fg);
 
-        // ── Buttons ─────────────────────────────────
+        // â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         fg.gridy++; fg.insets = new Insets(16, 0, 0, 0);
         ttBtnSave = new RoundedButton("Simpan Transaksi") {
             @Override
@@ -1351,7 +1460,7 @@ public class DashboardForm extends JFrame {
         fg.gridy++; fg.insets = new Insets(8, 0, 0, 0);
         JPanel batalRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         batalRow.setOpaque(false);
-        JLabel lbBatal = new JLabel("Batal — kembali ke daftar transaksi");
+        JLabel lbBatal = new JLabel("Batal â€” kembali ke daftar transaksi");
         lbBatal.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lbBatal.setForeground(UIConstants.TEXT_SECONDARY);
         lbBatal.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -1365,7 +1474,7 @@ public class DashboardForm extends JFrame {
 
         body.add(formCard, bl);
 
-        // ── RIGHT: SIDEBAR ───────────────────────────
+        // â”€â”€ RIGHT: SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         bl.gridx = 1; bl.weightx = 0.38; bl.insets = new Insets(0, 0, 0, 0);
         JPanel sidebar = new JPanel();
         sidebar.setOpaque(false);
@@ -1538,7 +1647,7 @@ public class DashboardForm extends JFrame {
                         int id = rs.getInt("id");
                         String nama = rs.getString("nama");
                         String icon = rs.getString("icon");
-                        if (icon == null) icon = "📦";
+                        if (icon == null) icon = "ðŸ“¦";
                         KategoriItem ki = new KategoriItem(id, nama, icon);
                         SwingUtilities.invokeLater(() -> ttComboKategori.addItem(ki));
                     }
@@ -1551,8 +1660,8 @@ public class DashboardForm extends JFrame {
                     stmt.setInt(1, userId);
                     ResultSet rs = stmt.executeQuery();
                     double used = rs.next() ? rs.getDouble(1) : 0;
-                    double limit = 5000000.0;
-                    int pct = Math.min(100, (int)(used / limit * 100));
+                    double limit = 0;
+                    int pct = limit > 0 ? Math.min(100, (int)(used / limit * 100)) : 0;
                     DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
                     String usedStr = "Rp " + new DecimalFormat("###,###,###", sym).format(used);
                     SwingUtilities.invokeLater(() -> {
@@ -1573,7 +1682,7 @@ public class DashboardForm extends JFrame {
                     java.util.List<JPanel> rows = new java.util.ArrayList<>();
                     while (rs.next()) {
                         String jd = rs.getString("judul"); if (jd == null) jd = "-";
-                        String ic = rs.getString("icon"); if (ic == null) ic = "📦";
+                        String ic = rs.getString("icon"); if (ic == null) ic = "ðŸ“¦";
                         double jml = rs.getDouble("jumlah");
                         JPanel row = new JPanel(new BorderLayout(10, 0));
                         row.setOpaque(false); row.setMaximumSize(new Dimension(10000, 48));
@@ -1650,7 +1759,7 @@ public class DashboardForm extends JFrame {
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Gagal menyimpan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            if (ttBtnSave != null) { ttBtnSave.setEnabled(true); ttBtnSave.setText("Simpan Transaksi  ▶"); }
+            if (ttBtnSave != null) { ttBtnSave.setEnabled(true); ttBtnSave.setText("Simpan Transaksi  â–¶"); }
         }
     }
 
@@ -1658,10 +1767,10 @@ public class DashboardForm extends JFrame {
     // SIDEBAR MENU CLICK HANDLER
     // ==========================================
     private void handleMenuClick(String title) {
-        if (title.equals("Dasbor")) {
-            setActiveMenuItem(itemDasbor);
+        if (title.equals("Dashboard")) {
+            setActiveMenuItem(itemDashboard);
             cardLayout.show(cardPanel, "Dashboard");
-            setTitle("FinTrack Pro - Ringkasan Dasbor");
+            setTitle("FinTrack Pro - Ringkasan Dashboard");
         } else if (title.equals("Transaksi")) {
             setActiveMenuItem(itemTransaksi);
             cardLayout.show(cardPanel, "Transaksi");
@@ -1717,7 +1826,7 @@ public class DashboardForm extends JFrame {
         g.weightx = 1.0; g.gridx = 0; g.gridy = 0;
         g.insets = new Insets(24, 30, 0, 30);
 
-        // ── Header ──────────────────────────────────────
+        // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         JPanel header = new JPanel(new BorderLayout(0, 4));
         header.setOpaque(false);
         JPanel titleBox = new JPanel();
@@ -1744,7 +1853,7 @@ public class DashboardForm extends JFrame {
         header.add(btnHeader, BorderLayout.EAST);
         outer.add(header, g);
 
-        // ── Top Row: Left Stats + Right Donut ───────────
+        // â”€â”€ Top Row: Left Stats + Right Donut â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         g.gridy++; g.insets = new Insets(20, 30, 0, 30);
         JPanel topRow = new JPanel(new GridBagLayout());
         topRow.setOpaque(false);
@@ -1864,7 +1973,7 @@ public class DashboardForm extends JFrame {
         topRow.add(donutCard, tr);
         outer.add(topRow, g);
 
-        // ── Bottom: Pendapatan vs Pengeluaran bar chart ─
+        // â”€â”€ Bottom: Pendapatan vs Pengeluaran bar chart â”€
         g.gridy++; g.insets = new Insets(20, 30, 30, 30);
         JPanel barCard = buildRoundedWhiteCard();
         barCard.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -2090,11 +2199,10 @@ public class DashboardForm extends JFrame {
                         ResultSet rs = ps.executeQuery();
                         mSpent[5-i] = rs.next() ? rs.getDouble(1) : 0;
                     } catch (SQLException ex) { ex.printStackTrace(); }
-                    // Simulate income as 1.4x spending for demo
-                    mIncome[5-i] = mSpent[5-i] * 1.4;
+                    mIncome[5-i] = 0;
                 }
-                savRate  = totSpent > 0 ? Math.min(100, (1.0 - totSpent / (totSpent * 1.4)) * 100) : 32;
-                netAccum = totSpent * 0.4;
+                savRate  = 0;
+                netAccum = 0;
                 return null;
             }
 
@@ -2190,7 +2298,7 @@ public class DashboardForm extends JFrame {
         g.weightx = 1.0; g.gridx = 0; g.gridy = 0;
         g.insets = new Insets(24, 30, 0, 30);
 
-        // ── Header ──────────────────────────────────────
+        // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         JPanel header = new JPanel(new BorderLayout(0, 4));
         header.setOpaque(false);
 
@@ -2217,7 +2325,7 @@ public class DashboardForm extends JFrame {
         header.add(btnHeader, BorderLayout.EAST);
         outer.add(header, g);
 
-        // ── 4 Stat Cards ───────────────────────────────
+        // â”€â”€ 4 Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         g.gridy++; g.insets = new Insets(20, 30, 0, 30);
         JPanel statsRow = new JPanel(new GridLayout(1, 4, 14, 0));
         statsRow.setOpaque(false);
@@ -2227,13 +2335,13 @@ public class DashboardForm extends JFrame {
         agSisaSaldo        = new JLabel("Rp0");
         agPeringatan       = new JLabel("0");
 
-        statsRow.add(buildAgStatCard("TOTAL ANGGARAN",   agTotalAnggaran,   "↑ 5% dari bulan lalu",   new Color(16, 185, 129), false));
-        statsRow.add(buildAgStatCard("TOTAL PENGELUARAN", agTotalPengeluaran, "↑ 12% dari target",     new Color(59, 130, 246), false));
+        statsRow.add(buildAgStatCard("TOTAL ANGGARAN",   agTotalAnggaran,   "â†‘ 5% dari bulan lalu",   new Color(16, 185, 129), false));
+        statsRow.add(buildAgStatCard("TOTAL PENGELUARAN", agTotalPengeluaran, "â†‘ 12% dari target",     new Color(59, 130, 246), false));
         statsRow.add(buildAgStatCard("SISA SALDO",        agSisaSaldo,        "Tersisa hingga akhir bulan", new Color(245, 158, 11), false));
         statsRow.add(buildAgStatCard("PERINGATAN",        agPeringatan,       "Kategori melebihi batas", new Color(239, 68, 68), true));
         outer.add(statsRow, g);
 
-        // ── Body: Kategori + Savings Goal ──────────────
+        // â”€â”€ Body: Kategori + Savings Goal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         g.gridy++; g.insets = new Insets(20, 30, 0, 30);
         JPanel body = new JPanel(new GridBagLayout());
         body.setOpaque(false);
@@ -2365,7 +2473,7 @@ public class DashboardForm extends JFrame {
         body.add(savCard, bl);
         outer.add(body, g);
 
-        // ── Recent Budget Transactions ──────────────────
+        // â”€â”€ Recent Budget Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         g.gridy++; g.insets = new Insets(20, 30, 30, 30);
         JPanel recentCard = buildRoundedWhiteCard();
         recentCard.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -2377,7 +2485,7 @@ public class DashboardForm extends JFrame {
         JLabel lbRecentTitle = new JLabel("Transaksi Anggaran Terbaru");
         lbRecentTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lbRecentTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbLihatSemua = new JLabel("LIHAT SEMUA RIWAYAT ›");
+        JLabel lbLihatSemua = new JLabel("LIHAT SEMUA RIWAYAT â€º");
         lbLihatSemua.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lbLihatSemua.setForeground(UIConstants.PRIMARY_BLUE);
         lbLihatSemua.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -2530,7 +2638,7 @@ public class DashboardForm extends JFrame {
         lbLimit.setForeground(UIConstants.TEXT_SECONDARY);
         lbLimit.setAlignmentX(Component.RIGHT_ALIGNMENT);
         if (over) {
-            JLabel lbOver = new JLabel("⚠ MELEWATI BATAS");
+            JLabel lbOver = new JLabel("âš  MELEWATI BATAS");
             lbOver.setFont(new Font("Segoe UI", Font.BOLD, 9));
             lbOver.setForeground(new Color(239,68,68));
             lbOver.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -2554,9 +2662,8 @@ public class DashboardForm extends JFrame {
                 DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
                 DecimalFormat df = new DecimalFormat("###,###,###", sym);
 
-                // Simulate budget limits per category (real app would pull from anggaran table)
-                double[] limits = {3000000, 2500000, 1500000, 1000000};
-                String[] icons  = {"🍽", "🏠", "🎭", "🚌"};
+                double[] limits = {0, 0, 0, 0};
+                String[] icons  = {"ðŸ½", "ðŸ ", "ðŸŽ­", "ðŸšŒ"};
                 String[] names  = {"Makanan & Minuman", "Sewa & Tempat Tinggal", "Hiburan", "Transportasi"};
                 String[] subs   = {"Restoran, Belanja Makanan", "Kost, Utilitas, Perawatan",
                                    "Bioskop, Langganan, Acara", "Ojek, Bus, Bensin, Tol"};
@@ -2598,7 +2705,7 @@ public class DashboardForm extends JFrame {
                     while (rs.next()) {
                         String tgl  = rs.getString("tanggal"); if (tgl==null) tgl="-";
                         String kNam = rs.getString("nama");    if (kNam==null) kNam="Lainnya";
-                        String kIc  = rs.getString("icon");    if (kIc==null)  kIc="📦";
+                        String kIc  = rs.getString("icon");    if (kIc==null)  kIc="ðŸ“¦";
                         double jml  = rs.getDouble("jumlah");
 
                         JPanel rRow = new JPanel(new GridLayout(1, 4, 0, 0));
@@ -2616,7 +2723,7 @@ public class DashboardForm extends JFrame {
                         lKat.setForeground(UIConstants.TEXT_PRIMARY);
                         lKat.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-                        JLabel lStat = new JLabel("● Pengeluaran");
+                        JLabel lStat = new JLabel("â— Pengeluaran");
                         lStat.setFont(new Font("Segoe UI", Font.BOLD, 11));
                         lStat.setForeground(new Color(239,68,68));
                         lStat.setBorder(new EmptyBorder(10, 0, 10, 0));
@@ -2632,7 +2739,7 @@ public class DashboardForm extends JFrame {
                     }
                 } catch (SQLException ex) { ex.printStackTrace(); }
 
-                savingUsed = totalSpent * 0.35; // example: 35% of spending goes toward saving goal
+                savingUsed = 0;
                 return null;
             }
 
@@ -2654,8 +2761,8 @@ public class DashboardForm extends JFrame {
                 for (JPanel r : recentRows) agRecentPanel.add(r);
                 agRecentPanel.revalidate(); agRecentPanel.repaint();
 
-                double savGoal = 8450000;
-                int savPct = (int) Math.min(100, savingUsed / savGoal * 100);
+                double savGoal = 0;
+                int savPct = savGoal > 0 ? (int) Math.min(100, savingUsed / savGoal * 100) : 0;
                 agSavingUsed.setText("Rp" + df.format(savingUsed));
                 agSavingBar.setValue(savPct);
             }
@@ -2664,7 +2771,7 @@ public class DashboardForm extends JFrame {
     }
 
     private void setActiveMenuItem(SidebarMenuItem activeItem) {
-        itemDasbor.setActive(itemDasbor == activeItem);
+        itemDashboard.setActive(itemDashboard == activeItem);
         itemTransaksi.setActive(itemTransaksi == activeItem);
         itemAnggaran.setActive(itemAnggaran == activeItem);
         itemLaporan.setActive(itemLaporan == activeItem);
@@ -2759,10 +2866,10 @@ public class DashboardForm extends JFrame {
         pnlDate.add(lblDateTitle, BorderLayout.NORTH);
         
         tComboTanggal = new JComboBox<>(new String[]{
-            "📅  Bulan Ini",
-            "📅  30 Hari Terakhir",
-            "📅  7 Hari Terakhir",
-            "📅  Kustom..."
+            "ðŸ“…  Bulan Ini",
+            "ðŸ“…  30 Hari Terakhir",
+            "ðŸ“…  7 Hari Terakhir",
+            "ðŸ“…  Kustom..."
         });
         tComboTanggal.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         tComboTanggal.setBackground(Color.WHITE);
@@ -2836,10 +2943,10 @@ public class DashboardForm extends JFrame {
         JPanel pnlFilterActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlFilterActions.setOpaque(false);
         
-        JButton btnAdvancedFilter = new JButton("🔍  Filter Lanjutan");
+        JButton btnAdvancedFilter = new JButton("ðŸ”  Filter Lanjutan");
         styleSecondaryButton(btnAdvancedFilter);
         
-        JButton btnExportCSV = new JButton("📥  Ekspor CSV");
+        JButton btnExportCSV = new JButton("ðŸ“¥  Ekspor CSV");
         styleSecondaryButton(btnExportCSV);
         btnExportCSV.addActionListener(e -> {
             JOptionPane.showMessageDialog(this, "Data transaksi berhasil diekspor ke CSV!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
@@ -2967,16 +3074,9 @@ public class DashboardForm extends JFrame {
                 int col = tTable.columnAtPoint(e.getPoint());
                 if (row >= 0 && col == 5) {
                     int id = (int) tTable.getValueAt(row, 0);
-                    if (id == -1) {
-                        JOptionPane.showMessageDialog(DashboardForm.this, 
-                            "Data demo tidak dapat diubah atau dihapus.", 
-                            "Aksi Dibatalkan", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-                    
                     JPopupMenu popup = new JPopupMenu();
-                    JMenuItem menuEdit = new JMenuItem("✏️  Edit Transaksi");
-                    JMenuItem menuDelete = new JMenuItem("🗑️  Hapus Transaksi");
+                    JMenuItem menuEdit = new JMenuItem("âœï¸  Edit Transaksi");
+                    JMenuItem menuDelete = new JMenuItem("ðŸ—‘ï¸  Hapus Transaksi");
                     
                     menuEdit.addActionListener(ae -> openEditTransactionDialog(id));
                     menuDelete.addActionListener(ae -> deleteTransaction(id));
@@ -3293,7 +3393,7 @@ public class DashboardForm extends JFrame {
                         item.tanggal = rs.getDate("tanggal");
                         item.jumlah = rs.getDouble("jumlah");
                         
-                        if (item.kategoriIcon == null) item.kategoriIcon = "📦";
+                        if (item.kategoriIcon == null) item.kategoriIcon = "ðŸ“¦";
                         if (item.kategoriNama == null) item.kategoriNama = "Lainnya";
                         
                         data.expenses.add(item);
@@ -3316,7 +3416,7 @@ public class DashboardForm extends JFrame {
                     DecimalFormatSymbols symbols = new DecimalFormatSymbols(new Locale("id", "ID"));
                     DecimalFormat df = new DecimalFormat("###,###,###", symbols);
                     
-                    double saldoBersih = 1931021000 - data.totalExpenses;
+                    double saldoBersih = 0;
                     tStatSaldo.setValue("Rp" + df.format(saldoBersih));
                     tStatPengeluaran.setValue("- Rp" + df.format(data.totalExpenses));
                     
@@ -3324,16 +3424,6 @@ public class DashboardForm extends JFrame {
                     SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy", new Locale("id", "ID"));
                     
                     ArrayList<Object[]> rows = new ArrayList<>();
-                    
-                    String selectedKat = (String) tComboKategori.getSelectedItem();
-                    boolean matchIncomeKat = (selectedKat == null || selectedKat.equals("Semua Kategori"));
-                    
-                    if (selectedJenis.equals("Semua") || selectedJenis.equals("Pemasukan")) {
-                        if (matchIncomeKat) {
-                            rows.add(new Object[]{-1, "22 Okt 2023", "Pendapatan Dividen", "Pembayaran kuartalan dari S&P 500 Inc", "+Rp199.021.860", "✏️ Edit / 🗑️ Hapus"});
-                            rows.add(new Object[]{-1, "15 Okt 2023", "Transfer Bank", "Pendanaan masuk dari Rekening Trust", "+Rp775.000.000", "✏️ Edit / 🗑️ Hapus"});
-                        }
-                    }
                     
                     if (selectedJenis.equals("Semua") || selectedJenis.equals("Pengeluaran")) {
                         for (TransactionItem tr : data.expenses) {
@@ -3343,7 +3433,7 @@ public class DashboardForm extends JFrame {
                                 tr.kategoriIcon + " " + tr.kategoriNama,
                                 tr.judul,
                                 "-Rp" + df.format(tr.jumlah),
-                                "✏️ Edit / 🗑️ Hapus"
+                                "âœï¸ Edit / ðŸ—‘ï¸ Hapus"
                             });
                         }
                     }
@@ -3372,13 +3462,14 @@ public class DashboardForm extends JFrame {
     // ==========================================
     private class SidebarMenuItem extends JPanel {
         private final String title;
-        private final String emoji;
+        private final String iconText;
         private boolean active;
         private final JLabel label;
+        private final JLabel iconLabel;
 
-        public SidebarMenuItem(String title, String emoji, boolean active) {
+        public SidebarMenuItem(String title, String iconText, boolean active) {
             this.title = title;
-            this.emoji = emoji;
+            this.iconText = iconText;
             this.active = active;
             setOpaque(false);
             setLayout(new BorderLayout(15, 0));
@@ -3386,7 +3477,23 @@ public class DashboardForm extends JFrame {
             setMaximumSize(new Dimension(240, 44));
             setBorder(new EmptyBorder(0, 20, 0, 10));
 
-            label = new JLabel(emoji + "   " + title);
+            iconLabel = new JLabel(iconText, SwingConstants.CENTER) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(active ? UIConstants.PRIMARY_BLUE : new Color(30, 41, 59));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            iconLabel.setPreferredSize(new Dimension(26, 26));
+            iconLabel.setFont(new Font("Segoe UI Symbol", Font.BOLD, 13));
+            iconLabel.setForeground(Color.WHITE);
+            add(iconLabel, BorderLayout.WEST);
+
+            label = new JLabel(title);
             label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
             label.setForeground(active ? Color.WHITE : new Color(148, 163, 184));
             add(label, BorderLayout.CENTER);
@@ -3420,6 +3527,7 @@ public class DashboardForm extends JFrame {
             this.active = active;
             label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
             label.setForeground(active ? Color.WHITE : new Color(148, 163, 184));
+            iconLabel.repaint();
             repaint();
         }
 
@@ -3670,7 +3778,7 @@ public class DashboardForm extends JFrame {
                     int id = rs.getInt("id");
                     String name = rs.getString("nama");
                     String icon = rs.getString("icon");
-                    if (icon == null) icon = "📦";
+                    if (icon == null) icon = "ðŸ“¦";
                     comboKategori.addItem(new KategoriComboItem(id, name, icon));
                 }
             } catch (SQLException e) {
