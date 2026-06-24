@@ -41,10 +41,8 @@ public class DashboardForm extends JFrame {
     private DefaultTableModel tableModel;
     
     // Components
-    private ExpenseTrendChart trendChart;
-    private AssetProgressPanel sahamPanel;
-    private AssetProgressPanel kasPanel;
-    private AssetProgressPanel lainnyaPanel;
+    private ExpenseTrendChart incomeTrendChart;
+    private ExpenseTrendChart expenseTrendChart;
 
     // Card Layout for switching screens
     private CardLayout cardLayout;
@@ -65,10 +63,14 @@ public class DashboardForm extends JFrame {
     private DetailBarChart tDetailChart;
     private String selectedJenis = "Semua";
 
+    // Laporan Date Range Selection fields
+    private JLabel laporanLblPeriode;
+    private java.util.Date laporanStartDate;
+    private java.util.Date laporanEndDate;
+
     // Sidebar items
     private SidebarMenuItem itemDashboard;
     private SidebarMenuItem itemTransaksi;
-    private SidebarMenuItem itemAnggaran;
     private SidebarMenuItem itemLaporan;
     private SidebarMenuItem itemPengaturan;
     private SidebarMenuItem itemBantuan;
@@ -82,14 +84,18 @@ public class DashboardForm extends JFrame {
     private JTextField ttTxtTanggal;
     private JComboBox<KategoriItem> ttComboKategori;
     private JTextArea ttTxtCatatan;
-    private JLabel ttLblBudgetUsed;
-    private JProgressBar ttProgressBudget;
     private JPanel ttRecentPanel;
     private RoundedButton ttBtnSave;
 
     public DashboardForm(int userId, String userName) {
         this.userId = userId;
         this.userName = userName;
+
+        // Initialize report date range (Default to first day of current month to today)
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+        this.laporanStartDate = cal.getTime();
+        this.laporanEndDate = new java.util.Date();
 
         initializeFrame();
         buildUI();
@@ -207,14 +213,11 @@ public class DashboardForm extends JFrame {
         
         itemDashboard = new SidebarMenuItem("Dashboard", SidebarIconType.DASHBOARD, true);
         itemTransaksi = new SidebarMenuItem("Transaksi", SidebarIconType.TRANSACTION, false);
-        itemAnggaran = new SidebarMenuItem("Anggaran", SidebarIconType.BUDGET, false);
         itemLaporan = new SidebarMenuItem("Laporan", SidebarIconType.REPORT, false);
         
         menuContainer.add(itemDashboard);
         menuContainer.add(Box.createVerticalStrut(8));
         menuContainer.add(itemTransaksi);
-        menuContainer.add(Box.createVerticalStrut(8));
-        menuContainer.add(itemAnggaran);
         menuContainer.add(Box.createVerticalStrut(8));
         menuContainer.add(itemLaporan);
         
@@ -389,7 +392,6 @@ public class DashboardForm extends JFrame {
         cardPanel.add(scrollPane, "Dashboard");
         buildTransaksiUI();
         buildTambahTransaksiUI();
-        buildAnggaranUI();
         buildLaporanUI();
         
         mainContainer.add(cardPanel, BorderLayout.CENTER);
@@ -427,16 +429,11 @@ public class DashboardForm extends JFrame {
         JPanel actionButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actionButtonsPanel.setOpaque(false);
         
-        JButton btnPeriod = new JButton("30 Hari Terakhir");
-        btnPeriod.setIcon(new ActionButtonIcon(ActionIconType.CALENDAR));
-        btnPeriod.setIconTextGap(8);
-        styleSecondaryButton(btnPeriod);
-        actionButtonsPanel.add(btnPeriod);
-
         JButton btnExport = new JButton("Ekspor Laporan");
         btnExport.setIcon(new ActionButtonIcon(ActionIconType.EXPORT));
         btnExport.setIconTextGap(8);
         styleSecondaryButton(btnExport);
+        btnExport.addActionListener(e -> exportDashboardReport());
         actionButtonsPanel.add(btnExport);
         
         titlePanel.add(actionButtonsPanel, BorderLayout.EAST);
@@ -451,7 +448,7 @@ public class DashboardForm extends JFrame {
         JPanel statCardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
         statCardsPanel.setOpaque(false);
         
-        totalKekayaanCard = new StatCard("TOTAL KEKAYAAN BERSIH", "Rp0", "0%", "Target: Rp0", new Color(34, 197, 94), true, 0);
+        totalKekayaanCard = new StatCard("SISA PEMASUKKAN", "Rp0", null, "", new Color(34, 197, 94), false, 0);
         pendapatanCard = new StatCard("PENDAPATAN BULANAN", "Rp0", "0%", "", new Color(34, 197, 94), false, 0);
         pengeluaranCard = new StatCard("PENGELUARAN BULANAN", "Rp0", "0%", "0% dari bulan lalu", new Color(239, 68, 68), false, 0);
         
@@ -475,75 +472,19 @@ public class DashboardForm extends JFrame {
         mgbc.gridy = 0;
         mgbc.weighty = 1.0;
 
-        // Chart Card (Kiri - 65% weight)
+        // Left Chart Card (Tren Pemasukkan - 50% weight)
         mgbc.gridx = 0;
-        mgbc.weightx = 0.65;
+        mgbc.weightx = 0.5;
         mgbc.insets = new Insets(0, 0, 0, 10);
-        trendChart = new ExpenseTrendChart();
-        midPanel.add(trendChart, mgbc);
+        incomeTrendChart = new ExpenseTrendChart("Tren Pemasukkan", UIConstants.SUCCESS_GREEN);
+        midPanel.add(incomeTrendChart, mgbc);
 
-        // Assets Card (Kanan - 35% weight)
+        // Right Chart Card (Tren Pengeluaran - 50% weight)
         mgbc.gridx = 1;
-        mgbc.weightx = 0.35;
+        mgbc.weightx = 0.5;
         mgbc.insets = new Insets(0, 10, 0, 0);
-        
-        JPanel assetsCard = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(15, 23, 42));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
-                g2.setColor(new Color(30, 41, 59));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        assetsCard.setOpaque(false);
-        assetsCard.setLayout(new GridBagLayout());
-        assetsCard.setBorder(new EmptyBorder(20, 20, 20, 20));
-        
-        GridBagConstraints agbc = new GridBagConstraints();
-        agbc.fill = GridBagConstraints.HORIZONTAL;
-        agbc.weightx = 1.0;
-        agbc.gridx = 0;
-        agbc.gridy = 0;
-        
-        JLabel lblAssetTitle = new JLabel("Alokasi Aset");
-        lblAssetTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lblAssetTitle.setForeground(Color.WHITE);
-        assetsCard.add(lblAssetTitle, agbc);
-        
-        agbc.gridy++;
-        agbc.insets = new Insets(20, 0, 0, 0);
-        sahamPanel = new AssetProgressPanel("Saham", 0, UIConstants.PRIMARY_BLUE, "\u2191");
-        assetsCard.add(sahamPanel, agbc);
-        
-        agbc.gridy++;
-        agbc.insets = new Insets(15, 0, 0, 0);
-        kasPanel = new AssetProgressPanel("Kas", 0, new Color(16, 185, 129), "$");
-        assetsCard.add(kasPanel, agbc);
-        
-        agbc.gridy++;
-        agbc.insets = new Insets(15, 0, 0, 0);
-        lainnyaPanel = new AssetProgressPanel("Lainnya", 0, new Color(107, 114, 128), "\u25C6");
-        assetsCard.add(lainnyaPanel, agbc);
-        
-        agbc.gridy++;
-        agbc.weighty = 1.0;
-        assetsCard.add(Box.createVerticalStrut(10), agbc);
-        
-        agbc.gridy++;
-        agbc.weighty = 0.0;
-        agbc.insets = new Insets(15, 0, 0, 0);
-        JLabel lblAssetFooter = new JLabel("Lihat detail portofolio lengkap \u2192");
-        lblAssetFooter.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblAssetFooter.setForeground(new Color(147, 197, 253));
-        lblAssetFooter.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        assetsCard.add(lblAssetFooter, agbc);
-        
-        midPanel.add(assetsCard, mgbc);
+        expenseTrendChart = new ExpenseTrendChart("Tren Pengeluaran", UIConstants.PRIMARY_BLUE);
+        midPanel.add(expenseTrendChart, mgbc);
         
         contentContainer.add(midPanel, cgbc);
 
@@ -558,10 +499,27 @@ public class DashboardForm extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                int shadowSize = 6;
+                int x = 2;
+                int y = 2;
+                int w = getWidth() - 8;
+                int h = getHeight() - 8;
+                
+                // Draw soft drop shadow
+                for (int i = 0; i < shadowSize; i++) {
+                    g2.setColor(new Color(0, 0, 0, (int) (10.0 * (shadowSize - i) / shadowSize)));
+                    g2.fillRoundRect(x + i, y + i + 1, w - 2*i + 4, h - 2*i + 4, 16, 16);
+                }
+                
+                // Draw card background
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.fillRoundRect(x + 1, y + 1, w + 2, h + 2, 16, 16);
+                
+                // Draw card border
                 g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g2.drawRoundRect(x + 1, y + 1, w + 2, h + 2, 16, 16);
+                
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -588,7 +546,7 @@ public class DashboardForm extends JFrame {
         bottomCard.add(recentHeader, BorderLayout.NORTH);
 
         // Table
-        String[] columns = {"ENTITAS", "KATEGORI", "TANGGAL", "STATUS", "JUMLAH"};
+        String[] columns = {"DESKRIPSI", "KATEGORI", "TANGGAL", "STATUS", "JUMLAH"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -601,6 +559,7 @@ public class DashboardForm extends JFrame {
         transactionTable.setShowGrid(false);
         transactionTable.setIntercellSpacing(new Dimension(0, 0));
         transactionTable.setBackground(Color.WHITE);
+        transactionTable.getColumnModel().getColumn(1).setCellRenderer(new TransactionCategoryRenderer());
         
         // Style Header Table
         JTableHeader tableHeader = transactionTable.getTableHeader();
@@ -710,50 +669,45 @@ public class DashboardForm extends JFrame {
             @Override
             protected DashboardData doInBackground() throws Exception {
                 DashboardData data = new DashboardData();
-                Connection conn = null;
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
 
-                try {
-                    conn = DatabaseConnection.getConnection();
-                    
+                try (Connection conn = DatabaseConnection.getConnection()) {
                     // 1. Get Monthly Expenditures
                     String sumQuery = "SELECT SUM(jumlah) FROM pengeluaran " +
                             "WHERE user_id = ? AND jenis = 'PENGELUARAN' " +
                             "AND MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())";
-                    stmt = conn.prepareStatement(sumQuery);
-                    stmt.setInt(1, userId);
-                    rs = stmt.executeQuery();
-                    if (rs.next()) {
-                        data.monthlyExpenses = rs.getDouble(1);
+                    try (PreparedStatement stmt = conn.prepareStatement(sumQuery)) {
+                        stmt.setInt(1, userId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) {
+                                data.monthlyExpenses = rs.getDouble(1);
+                            }
+                        }
                     }
-                    rs.close();
-                    stmt.close();
 
                     String previousMonthQuery = "SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran " +
                             "WHERE user_id = ? AND jenis = 'PENGELUARAN' " +
                             "AND MONTH(tanggal) = MONTH(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)) " +
                             "AND YEAR(tanggal) = YEAR(DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH))";
-                    stmt = conn.prepareStatement(previousMonthQuery);
-                    stmt.setInt(1, userId);
-                    rs = stmt.executeQuery();
-                    if (rs.next()) {
-                        data.previousMonthExpenses = rs.getDouble(1);
+                    try (PreparedStatement stmt = conn.prepareStatement(previousMonthQuery)) {
+                        stmt.setInt(1, userId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) {
+                                data.previousMonthExpenses = rs.getDouble(1);
+                            }
+                        }
                     }
-                    rs.close();
-                    stmt.close();
 
                     String incomeQuery = "SELECT COALESCE(SUM(jumlah),0) FROM pengeluaran " +
                             "WHERE user_id = ? AND jenis = 'PEMASUKAN' " +
                             "AND MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())";
-                    stmt = conn.prepareStatement(incomeQuery);
-                    stmt.setInt(1, userId);
-                    rs = stmt.executeQuery();
-                    if (rs.next()) {
-                        data.monthlyIncome = rs.getDouble(1);
+                    try (PreparedStatement stmt = conn.prepareStatement(incomeQuery)) {
+                        stmt.setInt(1, userId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            if (rs.next()) {
+                                data.monthlyIncome = rs.getDouble(1);
+                            }
+                        }
                     }
-                    rs.close();
-                    stmt.close();
 
                     // 2. Get Weekly Expenditures (Mon to Sun)
                     String weeklyQuery = "SELECT DAYOFWEEK(tanggal) as day, SUM(jumlah) as total " +
@@ -761,28 +715,53 @@ public class DashboardForm extends JFrame {
                             "WHERE user_id = ? AND jenis = 'PENGELUARAN' " +
                             "AND YEARWEEK(tanggal, 1) = YEARWEEK(CURDATE(), 1) " +
                             "GROUP BY DAYOFWEEK(tanggal)";
-                    stmt = conn.prepareStatement(weeklyQuery);
-                    stmt.setInt(1, userId);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        int day = rs.getInt("day");
-                        double total = rs.getDouble("total");
-                        
-                        // Map MySQL DAYOFWEEK (1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat) 
-                        // into index array (0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun)
-                        int index = -1;
-                        if (day >= 2 && day <= 7) {
-                            index = day - 2;
-                        } else if (day == 1) {
-                            index = 6; // Sunday
-                        }
-                        
-                        if (index >= 0 && index < 7) {
-                            data.weeklyChartData[index] = total;
+                    try (PreparedStatement stmt = conn.prepareStatement(weeklyQuery)) {
+                        stmt.setInt(1, userId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            while (rs.next()) {
+                                int day = rs.getInt("day");
+                                double total = rs.getDouble("total");
+                                
+                                int index = -1;
+                                if (day >= 2 && day <= 7) {
+                                    index = day - 2;
+                                } else if (day == 1) {
+                                    index = 6;
+                                }
+                                
+                                if (index >= 0 && index < 7) {
+                                    data.weeklyExpensesChartData[index] = total;
+                                }
+                            }
                         }
                     }
-                    rs.close();
-                    stmt.close();
+
+                    // Get Weekly Income (Mon to Sun)
+                    String weeklyIncomeQuery = "SELECT DAYOFWEEK(tanggal) as day, SUM(jumlah) as total " +
+                            "FROM pengeluaran " +
+                            "WHERE user_id = ? AND jenis = 'PEMASUKAN' " +
+                            "AND YEARWEEK(tanggal, 1) = YEARWEEK(CURDATE(), 1) " +
+                            "GROUP BY DAYOFWEEK(tanggal)";
+                    try (PreparedStatement stmt = conn.prepareStatement(weeklyIncomeQuery)) {
+                        stmt.setInt(1, userId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            while (rs.next()) {
+                                int day = rs.getInt("day");
+                                double total = rs.getDouble("total");
+                                
+                                int index = -1;
+                                if (day >= 2 && day <= 7) {
+                                    index = day - 2;
+                                } else if (day == 1) {
+                                    index = 6;
+                                }
+                                
+                                if (index >= 0 && index < 7) {
+                                    data.weeklyIncomeChartData[index] = total;
+                                }
+                            }
+                        }
+                    }
 
                     // 3. Get Recent Transactions (limit 3)
                     String trQuery = "SELECT p.judul, k.nama AS kat_nama, k.icon AS kat_icon, " +
@@ -792,29 +771,25 @@ public class DashboardForm extends JFrame {
                             "WHERE p.user_id = ? " +
                             "ORDER BY p.tanggal DESC, p.id DESC " +
                             "LIMIT 3";
-                    stmt = conn.prepareStatement(trQuery);
-                    stmt.setInt(1, userId);
-                    rs = stmt.executeQuery();
-                    while (rs.next()) {
-                        TransactionItem item = new TransactionItem();
-                        item.judul = rs.getString("judul");
-                        item.kategoriNama = rs.getString("kat_nama");
-                        item.kategoriIcon = rs.getString("kat_icon");
-                        item.tanggal = rs.getDate("tanggal");
-                        item.jumlah = rs.getDouble("jumlah");
-                        item.jenis = rs.getString("jenis");
-                        
-                        if (item.kategoriIcon == null) item.kategoriIcon = "\uD83D\uDCE6";
-                        if (item.kategoriNama == null) item.kategoriNama = "Lainnya";
-                        
-                        data.recentTransactions.add(item);
+                    try (PreparedStatement stmt = conn.prepareStatement(trQuery)) {
+                        stmt.setInt(1, userId);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            while (rs.next()) {
+                                TransactionItem item = new TransactionItem();
+                                item.judul = rs.getString("judul");
+                                item.kategoriNama = rs.getString("kat_nama");
+                                item.kategoriIcon = rs.getString("kat_icon");
+                                item.tanggal = rs.getDate("tanggal");
+                                item.jumlah = rs.getDouble("jumlah");
+                                item.jenis = rs.getString("jenis");
+                                
+                                if (item.kategoriIcon == null) item.kategoriIcon = "\uD83D\uDCE6";
+                                if (item.kategoriNama == null) item.kategoriNama = "Lainnya";
+                                
+                                data.recentTransactions.add(item);
+                            }
+                        }
                     }
-                    
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (rs != null) rs.close();
-                    if (stmt != null) stmt.close();
                 }
                 
                 return data;
@@ -835,8 +810,12 @@ public class DashboardForm extends JFrame {
                     pengeluaranCard.setBadgeText(formatExpenseTrendBadge(data.monthlyExpenses, data.previousMonthExpenses));
                     pengeluaranCard.setSubtext(formatExpenseTrendText(data.monthlyExpenses, data.previousMonthExpenses));
                     
-                    // Update Chart
-                    trendChart.setData(data.weeklyChartData);
+                    double remainingIncome = data.monthlyIncome - data.monthlyExpenses;
+                    totalKekayaanCard.setValue((remainingIncome >= 0 ? "Rp" : "-Rp") + df.format(Math.abs(remainingIncome)));
+                    
+                    // Update Charts
+                    incomeTrendChart.setData(data.weeklyIncomeChartData);
+                    expenseTrendChart.setData(data.weeklyExpensesChartData);
                     
                     // Update Table
                     tableModel.setRowCount(0);
@@ -845,7 +824,7 @@ public class DashboardForm extends JFrame {
                     for (TransactionItem tr : data.recentTransactions) {
                         tableModel.addRow(new Object[]{
                             tr.judul,
-                            tr.kategoriIcon + " " + tr.kategoriNama,
+                            tr.kategoriNama,
                             sdf.format(tr.tanggal),
                             "Selesai",
                             ("PEMASUKAN".equals(tr.jenis) ? "+Rp" : "-Rp") + df.format(tr.jumlah)
@@ -895,7 +874,8 @@ public class DashboardForm extends JFrame {
         double monthlyExpenses = 0;
         double monthlyIncome = 0;
         double previousMonthExpenses = 0;
-        double[] weeklyChartData = new double[7];
+        double[] weeklyExpensesChartData = new double[7];
+        double[] weeklyIncomeChartData = new double[7];
         ArrayList<TransactionItem> recentTransactions = new ArrayList<>();
     }
 
@@ -1025,6 +1005,10 @@ public class DashboardForm extends JFrame {
             valueLabel.setText(val);
         }
 
+        public String getValue() {
+            return this.value;
+        }
+
         public void setBadgeText(String text) {
             this.badgeText = text;
             if (badgeLabel != null) {
@@ -1045,13 +1029,26 @@ public class DashboardForm extends JFrame {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             
+            int shadowSize = 6;
+            int x = 2;
+            int y = 2;
+            int w = getWidth() - 8;
+            int h = getHeight() - 8;
+            
+            // Draw soft drop shadow
+            for (int i = 0; i < shadowSize; i++) {
+                g2.setColor(new Color(0, 0, 0, (int) (10.0 * (shadowSize - i) / shadowSize)));
+                g2.fillRoundRect(x + i, y + i + 1, w - 2*i + 4, h - 2*i + 4, 16, 16);
+            }
+            
             // Draw card background
             g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            g2.fillRoundRect(x + 1, y + 1, w + 2, h + 2, 16, 16);
             
             // Draw card border
             g2.setColor(new Color(229, 231, 235));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+            g2.drawRoundRect(x + 1, y + 1, w + 2, h + 2, 16, 16);
+            
             g2.dispose();
             super.paintComponent(g);
         }
@@ -1062,8 +1059,12 @@ public class DashboardForm extends JFrame {
         private double[] currentWeek = new double[7]; // Mon-Sun
         private final double[] previousWeek = new double[7];
         private final String[] days = {"SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MING"};
+        private final String chartTitle;
+        private final Color activeColor;
 
-        public ExpenseTrendChart() {
+        public ExpenseTrendChart(String chartTitle, Color activeColor) {
+            this.chartTitle = chartTitle;
+            this.activeColor = activeColor;
             setOpaque(false);
             setPreferredSize(new Dimension(0, 310));
         }
@@ -1084,10 +1085,25 @@ public class DashboardForm extends JFrame {
             int h = getHeight();
 
             // Background
+            int shadowSize = 6;
+            int x = 2;
+            int y = 2;
+            int cw = w - 8;
+            int ch = h - 8;
+            
+            // Draw soft drop shadow
+            for (int i = 0; i < shadowSize; i++) {
+                g2.setColor(new Color(0, 0, 0, (int) (10.0 * (shadowSize - i) / shadowSize)));
+                g2.fillRoundRect(x + i, y + i + 1, cw - 2*i + 4, ch - 2*i + 4, 16, 16);
+            }
+            
+            // Draw card background
             g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, w, h, 16, 16);
+            g2.fillRoundRect(x + 1, y + 1, cw + 2, ch + 2, 16, 16);
+            
+            // Draw card border
             g2.setColor(new Color(229, 231, 235));
-            g2.drawRoundRect(0, 0, w - 1, h - 1, 16, 16);
+            g2.drawRoundRect(x + 1, y + 1, cw + 2, ch + 2, 16, 16);
 
             int padLeft = 65;
             int padRight = 30;
@@ -1100,12 +1116,12 @@ public class DashboardForm extends JFrame {
             // Chart Header
             g2.setColor(UIConstants.TEXT_PRIMARY);
             g2.setFont(new Font("Segoe UI", Font.BOLD, 15));
-            g2.drawString("Tren Pengeluaran", 24, 32);
+            g2.drawString(chartTitle, 24, 32);
 
             // Legend
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
             int legX = w - 180;
-            g2.setColor(UIConstants.PRIMARY_BLUE);
+            g2.setColor(activeColor);
             g2.fillOval(legX, 22, 10, 10);
             g2.setColor(UIConstants.TEXT_SECONDARY);
             g2.drawString("Minggu Ini", legX + 16, 31);
@@ -1138,11 +1154,21 @@ public class DashboardForm extends JFrame {
                 double val = (maxVal * i / gridLines);
                 String label;
                 if (val >= 1000000) {
-                    label = String.format(Locale.US, "%.1fJt", val / 1000000.0);
+                    double valJt = val / 1000000.0;
+                    if (valJt == (int)valJt) {
+                        label = String.format(new Locale("id","ID"), "%.0f JT", valJt);
+                    } else {
+                        label = String.format(new Locale("id","ID"), "%.1f JT", valJt);
+                    }
                 } else if (val >= 1000) {
-                    label = String.format(Locale.US, "%.0fRb", val / 1000.0);
+                    double valK = val / 1000.0;
+                    if (valK == (int)valK) {
+                        label = String.format(new Locale("id","ID"), "%.0f K", valK);
+                    } else {
+                        label = String.format(new Locale("id","ID"), "%.1f K", valK);
+                    }
                 } else {
-                    label = String.format(Locale.US, "%.0f", val);
+                    label = String.format(new Locale("id","ID"), "%.0f", val);
                 }
                 g2.setColor(UIConstants.TEXT_SECONDARY);
                 g2.drawString(label, 18, gy + 4);
@@ -1175,7 +1201,7 @@ public class DashboardForm extends JFrame {
                 int cBarY = padTop + chartHeight - cBarH;
                 
                 if (cVal > 0) {
-                    g2.setColor(UIConstants.PRIMARY_BLUE);
+                    g2.setColor(activeColor);
                 } else {
                     g2.setColor(new Color(241, 245, 249)); // very light gray if 0
                 }
@@ -1186,94 +1212,7 @@ public class DashboardForm extends JFrame {
         }
     }
 
-    // AssetProgressPanel
-    private static class AssetProgressPanel extends JPanel {
-        private final String name;
-        private int percentage;
-        private final Color progressColor;
-        private final String emoji;
-        private JLabel pctLabel;
-        private JComponent barComp;
 
-        public AssetProgressPanel(String name, int percentage, Color progressColor, String emoji) {
-            this.name = name;
-            this.percentage = percentage;
-            this.progressColor = progressColor;
-            this.emoji = emoji;
-
-            setOpaque(false);
-            setLayout(new GridBagLayout());
-
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.weightx = 1.0;
-            gbc.gridx = 0;
-            gbc.gridy = 0;
-
-            // Row 1: Icon, Name, Value
-            JPanel top = new JPanel(new BorderLayout(8, 0));
-            top.setOpaque(false);
-
-            JLabel icon = new JLabel(emoji) {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new Color(30, 41, 59));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    g2.dispose();
-                    super.paintComponent(g);
-                }
-            };
-            icon.setPreferredSize(new Dimension(32, 32));
-            icon.setHorizontalAlignment(SwingConstants.CENTER);
-            icon.setForeground(Color.WHITE);
-            icon.setFont(new Font("Segoe UI Symbol", Font.BOLD, 15));
-            top.add(icon, BorderLayout.WEST);
-
-            JLabel lblName = new JLabel(name);
-            lblName.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lblName.setForeground(Color.WHITE);
-            top.add(lblName, BorderLayout.CENTER);
-
-            pctLabel = new JLabel(percentage + "%");
-            pctLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            pctLabel.setForeground(new Color(203, 213, 225));
-            top.add(pctLabel, BorderLayout.EAST);
-
-            add(top, gbc);
-
-            // Row 2: Progress Bar
-            gbc.gridy++;
-            gbc.insets = new Insets(8, 0, 0, 0);
-            
-            barComp = new JComponent() {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    
-                    // Track
-                    g2.setColor(new Color(51, 65, 85));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
-                    
-                    // Bar
-                    int fill = (int) (getWidth() * (percentage / 100.0));
-                    g2.setColor(progressColor);
-                    g2.fillRoundRect(0, 0, fill, getHeight(), 4, 4);
-                    g2.dispose();
-                }
-            };
-            barComp.setPreferredSize(new Dimension(0, 6));
-            add(barComp, gbc);
-        }
-
-        public void setPercentage(int pct) {
-            this.percentage = pct;
-            pctLabel.setText(pct + "%");
-            barComp.repaint();
-        }
-    }
 
     // ==========================================
     // 3. DIALOG TAMBAH TRANSAKSI BARU (MODAL)
@@ -1528,69 +1467,7 @@ public class DashboardForm extends JFrame {
         sidebar.setOpaque(false);
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
 
-        // Status Anggaran card
-        JPanel budgetCard = buildRoundedWhiteCard();
-        budgetCard.setBorder(new EmptyBorder(20, 20, 20, 20));
-        budgetCard.setLayout(new GridBagLayout());
-        GridBagConstraints bc = new GridBagConstraints();
-        bc.fill = GridBagConstraints.HORIZONTAL; bc.weightx = 1.0; bc.gridx = 0; bc.gridy = 0;
 
-        JPanel bHeader = new JPanel(new BorderLayout());
-        bHeader.setOpaque(false);
-        JLabel lbBudgetTitle = new JLabel("Status Anggaran");
-        lbBudgetTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lbBudgetTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbBudgetSub = new JLabel("KATEGORI ANGGARAN");
-        lbBudgetSub.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        lbBudgetSub.setForeground(UIConstants.TEXT_SECONDARY);
-        bHeader.add(lbBudgetTitle, BorderLayout.WEST);
-        budgetCard.add(bHeader, bc);
-
-        bc.gridy++; bc.insets = new Insets(6, 0, 0, 0);
-        JPanel bRow = new JPanel(new BorderLayout());
-        bRow.setOpaque(false);
-        JLabel lbTerpakai = new JLabel("Terpakai");
-        lbTerpakai.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lbTerpakai.setForeground(UIConstants.TEXT_SECONDARY);
-        ttLblBudgetUsed = new JLabel("Rp 0");
-        ttLblBudgetUsed.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        ttLblBudgetUsed.setForeground(UIConstants.TEXT_PRIMARY);
-        bRow.add(lbTerpakai, BorderLayout.WEST);
-        bRow.add(ttLblBudgetUsed, BorderLayout.EAST);
-        budgetCard.add(bRow, bc);
-
-        bc.gridy++; bc.insets = new Insets(8, 0, 0, 0);
-        ttProgressBudget = new JProgressBar(0, 100);
-        ttProgressBudget.setValue(0);
-        ttProgressBudget.setStringPainted(false);
-        ttProgressBudget.setForeground(UIConstants.PRIMARY_BLUE);
-        ttProgressBudget.setBackground(new Color(226, 232, 240));
-        ttProgressBudget.setPreferredSize(new Dimension(0, 8));
-        ttProgressBudget.setBorder(null);
-        budgetCard.add(ttProgressBudget, bc);
-
-        bc.gridy++; bc.insets = new Insets(8, 0, 0, 0);
-        JPanel limitRow = new JPanel(new BorderLayout());
-        limitRow.setOpaque(false);
-        JLabel lbLimit = new JLabel("Limit: Rp 5.000.000");
-        lbLimit.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lbLimit.setForeground(UIConstants.TEXT_SECONDARY);
-        JLabel lbSisa = new JLabel("Sisa 100%");
-        lbSisa.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lbSisa.setForeground(new Color(16, 185, 129));
-        limitRow.add(lbLimit, BorderLayout.WEST);
-        limitRow.add(lbSisa, BorderLayout.EAST);
-        budgetCard.add(limitRow, bc);
-
-        bc.gridy++; bc.insets = new Insets(14, 0, 0, 0);
-        JLabel lbBudgetNote = new JLabel(
-            "<html><i>Pengeluaran ini masih dalam batas yang aman anggaran bulanan Anda.</i></html>");
-        lbBudgetNote.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        lbBudgetNote.setForeground(UIConstants.TEXT_SECONDARY);
-        budgetCard.add(lbBudgetNote, bc);
-
-        sidebar.add(budgetCard);
-        sidebar.add(Box.createVerticalStrut(16));
 
         // Terakhir Dicatat card
         JPanel recentCard = buildRoundedWhiteCard();
@@ -1638,18 +1515,37 @@ public class DashboardForm extends JFrame {
     }
 
     private JPanel buildRoundedWhiteCard() {
-        return new JPanel() {
+        JPanel card = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                int shadowSize = 6;
+                int x = 2;
+                int y = 2;
+                int w = getWidth() - 8;
+                int h = getHeight() - 8;
+                
+                // Draw soft drop shadow
+                for (int i = 0; i < shadowSize; i++) {
+                    g2.setColor(new Color(0, 0, 0, (int) (10.0 * (shadowSize - i) / shadowSize)));
+                    g2.fillRoundRect(x + i, y + i + 1, w - 2*i + 4, h - 2*i + 4, 16, 16);
+                }
+                
+                // Draw card background
                 g2.setColor(Color.WHITE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
-                g2.setColor(new Color(229, 231, 235));
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+                g2.fillRoundRect(x + 1, y + 1, w + 2, h + 2, 16, 16);
+                
+                // Draw card border
+                g2.setColor(new Color(226, 232, 240));
+                g2.drawRoundRect(x + 1, y + 1, w + 2, h + 2, 16, 16);
+                
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
+        card.setOpaque(false);
+        return card;
     }
 
     private void applyTipeToggle(JButton btn, boolean active) {
@@ -1702,25 +1598,7 @@ public class DashboardForm extends JFrame {
                     }
                 } catch (SQLException ex) { ex.printStackTrace(); }
 
-                // Load budget used
-                try (Connection conn = DatabaseConnection.getConnection()) {
-                    String q = "SELECT SUM(jumlah) FROM pengeluaran WHERE user_id = ? " +
-                            "AND jenis = 'PENGELUARAN' AND MONTH(tanggal)=MONTH(CURDATE()) " +
-                            "AND YEAR(tanggal)=YEAR(CURDATE())";
-                    PreparedStatement stmt = conn.prepareStatement(q);
-                    stmt.setInt(1, userId);
-                    ResultSet rs = stmt.executeQuery();
-                    double used = rs.next() ? rs.getDouble(1) : 0;
-                    double limit = 0;
-                    int pct = limit > 0 ? Math.min(100, (int)(used / limit * 100)) : 0;
-                    DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
-                    String usedStr = "Rp " + new DecimalFormat("###,###,###", sym).format(used);
-                    SwingUtilities.invokeLater(() -> {
-                        ttLblBudgetUsed.setText(usedStr);
-                        ttProgressBudget.setValue(pct);
-                        ttProgressBudget.setForeground(pct > 80 ? new Color(239,68,68) : UIConstants.PRIMARY_BLUE);
-                    });
-                } catch (SQLException ex) { ex.printStackTrace(); }
+
 
                 // Load last 3 transactions
                 try (Connection conn = DatabaseConnection.getConnection()) {
@@ -1848,16 +1726,12 @@ public class DashboardForm extends JFrame {
             setActiveMenuItem(itemDashboard);
             cardLayout.show(cardPanel, "Dashboard");
             setTitle("FinTrack Pro - Ringkasan Dashboard");
+            refreshDashboardData();
         } else if (title.equals("Transaksi")) {
             setActiveMenuItem(itemTransaksi);
             cardLayout.show(cardPanel, "Transaksi");
             setTitle("FinTrack Pro - Riwayat Transaksi");
             refreshTransaksiPage();
-        } else if (title.equals("Anggaran")) {
-            setActiveMenuItem(itemAnggaran);
-            cardLayout.show(cardPanel, "Anggaran");
-            setTitle("FinTrack Pro - Ringkasan Anggaran");
-            refreshAnggaranPage();
         } else if (title.equals("Laporan")) {
             setActiveMenuItem(itemLaporan);
             cardLayout.show(cardPanel, "Laporan");
@@ -1879,9 +1753,9 @@ public class DashboardForm extends JFrame {
     private double laporanTotalSpent = 0;
     private double laporanSavingRate = 0;
     private double laporanNetAccum   = 0;
-    private double[] laporanMonthlySpent    = new double[6];
-    private double[] laporanMonthlyIncome   = new double[6];
-    private String[] laporanMonthLabels     = new String[6];
+    private double[] laporanMonthlySpent    = {};
+    private double[] laporanMonthlyIncome   = {};
+    private String[] laporanMonthLabels     = {};
     private JPanel laporanDonutPanel;
     private JPanel laporanLegendPanel;
     private JPanel laporanBarPanel;
@@ -1912,18 +1786,26 @@ public class DashboardForm extends JFrame {
         JLabel lbTitle = new JLabel("Analisis Performa");
         lbTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lbTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        String periode = "Periode analisis: " +
-            new java.text.SimpleDateFormat("01 MMM yyyy", new Locale("id","ID")).format(new Date())
-            + " - " + new java.text.SimpleDateFormat("dd MMM yyyy", new Locale("id","ID")).format(new Date());
-        JLabel lbSub = new JLabel(periode);
-        lbSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lbSub.setForeground(UIConstants.TEXT_SECONDARY);
-        titleBox.add(lbTitle); titleBox.add(Box.createVerticalStrut(4)); titleBox.add(lbSub);
+        SimpleDateFormat dateSdf = new SimpleDateFormat("dd MMM yyyy", new Locale("id", "ID"));
+        String periode = "Periode analisis: " + dateSdf.format(laporanStartDate) + " - " + dateSdf.format(laporanEndDate);
+        laporanLblPeriode = new JLabel(periode);
+        laporanLblPeriode.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        laporanLblPeriode.setForeground(UIConstants.TEXT_SECONDARY);
+        titleBox.add(lbTitle); titleBox.add(Box.createVerticalStrut(4)); titleBox.add(laporanLblPeriode);
         header.add(titleBox, BorderLayout.WEST);
         JPanel btnHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         btnHeader.setOpaque(false);
         JButton btnRentang = new JButton("Rentang tanggal");
         styleSecondaryButton(btnRentang);
+        btnRentang.addActionListener(e -> {
+            DateRangeDialog dialog = new DateRangeDialog(this, laporanStartDate, laporanEndDate);
+            dialog.setVisible(true);
+            if (dialog.isConfirmed()) {
+                laporanStartDate = dialog.getStartDate();
+                laporanEndDate = dialog.getEndDate();
+                refreshLaporanPage();
+            }
+        });
         RoundedButton btnEkspor = new RoundedButton("Ekspor PDF");
         btnEkspor.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnHeader.add(btnRentang); btnHeader.add(btnEkspor);
@@ -2180,8 +2062,25 @@ public class DashboardForm extends JFrame {
             int yy = padT + chartH - (int)(li / 4.0 * chartH);
             g2.drawLine(padL, yy, w - padR, yy);
             g2.setColor(new Color(148, 163, 184));
-            DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
-            String lbl = new DecimalFormat("###,##0", sym).format(maxVal * li / 4 / 1000) + "K";
+            double val = maxVal * li / 4;
+            String lbl;
+            if (val >= 1000000) {
+                double valJt = val / 1000000.0;
+                if (valJt == (int)valJt) {
+                    lbl = String.format(new Locale("id","ID"), "%.0f JT", valJt);
+                } else {
+                    lbl = String.format(new Locale("id","ID"), "%.1f JT", valJt);
+                }
+            } else if (val >= 1000) {
+                double valK = val / 1000.0;
+                if (valK == (int)valK) {
+                    lbl = String.format(new Locale("id","ID"), "%.0f K", valK);
+                } else {
+                    lbl = String.format(new Locale("id","ID"), "%.1f K", valK);
+                }
+            } else {
+                lbl = String.format(new Locale("id","ID"), "%.0f", val);
+            }
             g2.drawString(lbl, 2, yy + 4);
             g2.setColor(new Color(226, 232, 240));
         }
@@ -2213,6 +2112,7 @@ public class DashboardForm extends JFrame {
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             FontMetrics fm = g2.getFontMetrics();
             String lbl = laporanMonthLabels[i];
+            if (lbl == null) lbl = "";
             g2.drawString(lbl, centerX - fm.stringWidth(lbl)/2, h - 8);
         }
     }
@@ -2221,12 +2121,13 @@ public class DashboardForm extends JFrame {
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             double[] katVals; String[] katNames; Color[] katColors;
             double totSpent, savRate, netAccum;
-            double[] mSpent = new double[6], mIncome = new double[6];
-            String[] mLabels = new String[6];
+            double[] mSpent;
+            double[] mIncome;
+            String[] mLabels;
 
             @Override
             protected Void doInBackground() throws Exception {
-                // Category breakdown
+                // Category breakdown based on laporanStartDate and laporanEndDate
                 java.util.List<double[]> vList = new java.util.ArrayList<>();
                 java.util.List<String>   nList = new java.util.ArrayList<>();
                 java.util.List<Color>    cList = new java.util.ArrayList<>();
@@ -2235,14 +2136,21 @@ public class DashboardForm extends JFrame {
                     new Color(239,68,68),  new Color(139,92,246), new Color(236,72,153),
                     new Color(20,184,166), new Color(107,114,128)
                 };
+                
+                java.sql.Date sqlStart = new java.sql.Date(laporanStartDate.getTime());
+                java.sql.Date sqlEnd = new java.sql.Date(laporanEndDate.getTime());
+
                 try (Connection conn = DatabaseConnection.getConnection()) {
                     String q = "SELECT k.nama, COALESCE(SUM(p.jumlah),0) AS total " +
                         "FROM kategori k LEFT JOIN pengeluaran p ON k.id=p.kategori_id " +
                         "AND p.user_id=? AND p.jenis='PENGELUARAN' " +
-                        "AND MONTH(p.tanggal)=MONTH(CURDATE()) AND YEAR(p.tanggal)=YEAR(CURDATE()) " +
+                        "AND p.tanggal BETWEEN ? AND ? " +
                         "WHERE k.user_id IS NULL OR k.user_id=? GROUP BY k.id, k.nama ORDER BY total DESC LIMIT 8";
                     PreparedStatement ps = conn.prepareStatement(q);
-                    ps.setInt(1, userId); ps.setInt(2, userId);
+                    ps.setInt(1, userId);
+                    ps.setDate(2, sqlStart);
+                    ps.setDate(3, sqlEnd);
+                    ps.setInt(4, userId);
                     ResultSet rs = ps.executeQuery();
                     int ci = 0;
                     while (rs.next()) {
@@ -2260,30 +2168,80 @@ public class DashboardForm extends JFrame {
                 katNames  = nList.toArray(new String[0]);
                 katColors = cList.toArray(new Color[0]);
 
-                // Monthly data (last 6 months)
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM", new Locale("id","ID"));
-                java.util.Calendar cal = java.util.Calendar.getInstance();
-                for (int i = 5; i >= 0; i--) {
-                    java.util.Calendar mc = (java.util.Calendar) cal.clone();
-                    mc.add(java.util.Calendar.MONTH, -i);
-                    int mon = mc.get(java.util.Calendar.MONTH) + 1;
-                    int yr  = mc.get(java.util.Calendar.YEAR);
-                    mLabels[5-i] = sdf.format(mc.getTime());
-                    try (Connection conn = DatabaseConnection.getConnection()) {
-                        PreparedStatement ps = conn.prepareStatement(
-                            "SELECT " +
-                            "COALESCE(SUM(CASE WHEN jenis='PENGELUARAN' THEN jumlah ELSE 0 END),0) AS spent, " +
-                            "COALESCE(SUM(CASE WHEN jenis='PEMASUKAN' THEN jumlah ELSE 0 END),0) AS income " +
-                            "FROM pengeluaran " +
-                            "WHERE user_id=? AND MONTH(tanggal)=? AND YEAR(tanggal)=?");
-                        ps.setInt(1, userId); ps.setInt(2, mon); ps.setInt(3, yr);
+                // Calculate the months in the range for bar chart (up to 12 months)
+                java.util.Calendar calStart = java.util.Calendar.getInstance();
+                calStart.setTime(laporanStartDate);
+                calStart.set(java.util.Calendar.DAY_OF_MONTH, 1);
+                calStart.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                calStart.set(java.util.Calendar.MINUTE, 0);
+                calStart.set(java.util.Calendar.SECOND, 0);
+                calStart.set(java.util.Calendar.MILLISECOND, 0);
+
+                java.util.Calendar calEnd = java.util.Calendar.getInstance();
+                calEnd.setTime(laporanEndDate);
+                calEnd.set(java.util.Calendar.DAY_OF_MONTH, 1);
+                calEnd.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                calEnd.set(java.util.Calendar.MINUTE, 0);
+                calEnd.set(java.util.Calendar.SECOND, 0);
+                calEnd.set(java.util.Calendar.MILLISECOND, 0);
+
+                java.util.List<java.util.Calendar> monthsList = new java.util.ArrayList<>();
+                java.util.Calendar current = (java.util.Calendar) calStart.clone();
+                while (!current.after(calEnd) && monthsList.size() < 12) {
+                    monthsList.add((java.util.Calendar) current.clone());
+                    current.add(java.util.Calendar.MONTH, 1);
+                }
+                if (monthsList.isEmpty()) {
+                    monthsList.add((java.util.Calendar) calStart.clone());
+                }
+
+                int numMonths = monthsList.size();
+                mSpent = new double[numMonths];
+                mIncome = new double[numMonths];
+                mLabels = new String[numMonths];
+
+                java.text.SimpleDateFormat sdfMonth = new java.text.SimpleDateFormat("MMM", new Locale("id","ID"));
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    String monthlyQuery = "SELECT " +
+                        "COALESCE(SUM(CASE WHEN jenis='PENGELUARAN' THEN jumlah ELSE 0 END),0) AS spent, " +
+                        "COALESCE(SUM(CASE WHEN jenis='PEMASUKAN' THEN jumlah ELSE 0 END),0) AS income " +
+                        "FROM pengeluaran " +
+                        "WHERE user_id=? AND tanggal BETWEEN ? AND ?";
+                    PreparedStatement ps = conn.prepareStatement(monthlyQuery);
+                    
+                    for (int i = 0; i < numMonths; i++) {
+                        java.util.Calendar mCal = monthsList.get(i);
+                        mLabels[i] = sdfMonth.format(mCal.getTime());
+
+                        java.util.Calendar monthStart = (java.util.Calendar) mCal.clone();
+                        monthStart.set(java.util.Calendar.DAY_OF_MONTH, 1);
+                        monthStart.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                        monthStart.set(java.util.Calendar.MINUTE, 0);
+                        monthStart.set(java.util.Calendar.SECOND, 0);
+                        monthStart.set(java.util.Calendar.MILLISECOND, 0);
+
+                        java.util.Calendar monthEnd = (java.util.Calendar) mCal.clone();
+                        monthEnd.set(java.util.Calendar.DAY_OF_MONTH, monthEnd.getActualMaximum(java.util.Calendar.DAY_OF_MONTH));
+                        monthEnd.set(java.util.Calendar.HOUR_OF_DAY, 23);
+                        monthEnd.set(java.util.Calendar.MINUTE, 59);
+                        monthEnd.set(java.util.Calendar.SECOND, 59);
+                        monthEnd.set(java.util.Calendar.MILLISECOND, 999);
+
+                        java.util.Date queryStart = monthStart.getTime().after(laporanStartDate) ? monthStart.getTime() : laporanStartDate;
+                        java.util.Date queryEnd = monthEnd.getTime().before(laporanEndDate) ? monthEnd.getTime() : laporanEndDate;
+
+                        ps.setInt(1, userId);
+                        ps.setDate(2, new java.sql.Date(queryStart.getTime()));
+                        ps.setDate(3, new java.sql.Date(queryEnd.getTime()));
                         ResultSet rs = ps.executeQuery();
                         if (rs.next()) {
-                            mSpent[5-i] = rs.getDouble("spent");
-                            mIncome[5-i] = rs.getDouble("income");
+                            mSpent[i] = rs.getDouble("spent");
+                            mIncome[i] = rs.getDouble("income");
                         }
-                    } catch (SQLException ex) { ex.printStackTrace(); }
-                }
+                        rs.close();
+                    }
+                } catch (SQLException ex) { ex.printStackTrace(); }
+
                 double totalIncome = 0;
                 for (int i = 0; i < mIncome.length; i++) {
                     totalIncome += mIncome[i];
@@ -2305,12 +2263,17 @@ public class DashboardForm extends JFrame {
                 laporanMonthlyIncome = mIncome;
                 laporanMonthLabels   = mLabels;
 
+                // Update subtitle period label
+                java.text.SimpleDateFormat dateSdf = new java.text.SimpleDateFormat("dd MMM yyyy", new Locale("id", "ID"));
+                String periode = "Periode analisis: " + dateSdf.format(laporanStartDate) + " - " + dateSdf.format(laporanEndDate);
+                laporanLblPeriode.setText(periode);
+
                 // Update stat labels
-                laporanLblSavingRate.setText(String.format("%.1f%%", savRate));
+                laporanLblSavingRate.setText(String.format(Locale.US, "%.1f%%", savRate));
                 laporanSavingBar.setValue((int) savRate);
                 DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
                 DecimalFormat df = new DecimalFormat("###,###,###", sym);
-                laporanLblNetAccum.setText("+Rp" + df.format(netAccum));
+                laporanLblNetAccum.setText((netAccum >= 0 ? "+Rp" : "-Rp") + df.format(Math.abs(netAccum)));
 
                 // Build legend
                 laporanLegendPanel.removeAll();
@@ -2338,7 +2301,7 @@ public class DashboardForm extends JFrame {
 
                     double pct = totSpent > 0 ? katVals[i] / totSpent * 100 : 0;
                     JLabel lbAmt = new JLabel("Rp" + dfJt.format(katVals[i]/1_000_000) + "Jt  " +
-                        String.format("(%.0f%%)", pct));
+                        String.format(Locale.US, "(%.0f%%)", pct));
                     lbAmt.setFont(new Font("Segoe UI", Font.BOLD, 11));
                     lbAmt.setForeground(UIConstants.TEXT_SECONDARY);
 
@@ -2358,510 +2321,9 @@ public class DashboardForm extends JFrame {
         worker.execute();
     }
 
-    // ==========================================
-    // ANGGARAN PAGE
-    // ==========================================
-    // Anggaran UI live references
-    private JLabel agTotalAnggaran;
-    private JLabel agTotalPengeluaran;
-    private JLabel agSisaSaldo;
-    private JLabel agPeringatan;
-    private JPanel agKategoriPanel;
-    private JPanel agRecentPanel;
-    private JLabel agSavingUsed;
-    private JProgressBar agSavingBar;
-
-    private void buildAnggaranUI() {
-        JPanel outer = new JPanel(new GridBagLayout());
-        outer.setOpaque(false);
-
-        JScrollPane sp = new JScrollPane(outer);
-        sp.setBorder(null);
-        sp.getVerticalScrollBar().setUnitIncrement(16);
-        sp.setBackground(new Color(248, 250, 252));
-
-        GridBagConstraints g = new GridBagConstraints();
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.weightx = 1.0; g.gridx = 0; g.gridy = 0;
-        g.insets = new Insets(24, 30, 0, 30);
-
-        // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        JPanel header = new JPanel(new BorderLayout(0, 4));
-        header.setOpaque(false);
-
-        JPanel titleBox = new JPanel();
-        titleBox.setOpaque(false);
-        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
-        JLabel lbTitle = new JLabel("Ringkasan Anggaran");
-        lbTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
-        lbTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbSub = new JLabel("Mengelola 8 kategori anggaran aktif untuk " +
-                new java.text.SimpleDateFormat("MMMM yyyy", new Locale("id","ID")).format(new Date()));
-        lbSub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbSub.setForeground(UIConstants.TEXT_SECONDARY);
-        titleBox.add(lbTitle); titleBox.add(Box.createVerticalStrut(4)); titleBox.add(lbSub);
-        header.add(titleBox, BorderLayout.WEST);
-
-        JPanel btnHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        btnHeader.setOpaque(false);
-        JButton btnAtur = new JButton("Atur Batasan");
-        styleSecondaryButton(btnAtur);
-        RoundedButton btnEkspor = new RoundedButton("Ekspor Analisis");
-        btnEkspor.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnHeader.add(btnAtur); btnHeader.add(btnEkspor);
-        header.add(btnHeader, BorderLayout.EAST);
-        outer.add(header, g);
-
-        // â”€â”€ 4 Stat Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        g.gridy++; g.insets = new Insets(20, 30, 0, 30);
-        JPanel statsRow = new JPanel(new GridLayout(1, 4, 14, 0));
-        statsRow.setOpaque(false);
-
-        agTotalAnggaran   = new JLabel("Rp0");
-        agTotalPengeluaran = new JLabel("Rp0");
-        agSisaSaldo        = new JLabel("Rp0");
-        agPeringatan       = new JLabel("0");
-
-        statsRow.add(buildAgStatCard("TOTAL ANGGARAN",   agTotalAnggaran,   "\u2191 5% dari bulan lalu",   new Color(16, 185, 129), false));
-        statsRow.add(buildAgStatCard("TOTAL PENGELUARAN", agTotalPengeluaran, "\u2191 12% dari target",     new Color(59, 130, 246), false));
-        statsRow.add(buildAgStatCard("SISA SALDO",        agSisaSaldo,        "Tersisa hingga akhir bulan", new Color(245, 158, 11), false));
-        statsRow.add(buildAgStatCard("PERINGATAN",        agPeringatan,       "Kategori melebihi batas", new Color(239, 68, 68), true));
-        outer.add(statsRow, g);
-
-        // â”€â”€ Body: Kategori + Savings Goal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        g.gridy++; g.insets = new Insets(20, 30, 0, 30);
-        JPanel body = new JPanel(new GridBagLayout());
-        body.setOpaque(false);
-
-        GridBagConstraints bl = new GridBagConstraints();
-        bl.fill = GridBagConstraints.BOTH; bl.gridy = 0; bl.weighty = 1.0;
-
-        // LEFT: Kategori Anggaran card
-        bl.gridx = 0; bl.weightx = 0.63; bl.insets = new Insets(0, 0, 0, 14);
-        JPanel katCard = buildRoundedWhiteCard();
-        katCard.setBorder(new EmptyBorder(20, 20, 20, 20));
-        katCard.setLayout(new BorderLayout());
-
-        JPanel katHeader = new JPanel(new BorderLayout());
-        katHeader.setOpaque(false);
-        katHeader.setBorder(new EmptyBorder(0, 0, 14, 0));
-
-        JPanel katLeft = new JPanel();
-        katLeft.setOpaque(false);
-        katLeft.setLayout(new BoxLayout(katLeft, BoxLayout.Y_AXIS));
-        JLabel lbKat = new JLabel("Kategori Anggaran");
-        lbKat.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lbKat.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbKatSub = new JLabel("Oktober 2025");
-        lbKatSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lbKatSub.setForeground(UIConstants.TEXT_SECONDARY);
-        katLeft.add(lbKat); katLeft.add(Box.createVerticalStrut(2)); katLeft.add(lbKatSub);
-        katHeader.add(katLeft, BorderLayout.WEST);
-
-        // Harian / Bulanan toggle pill
-        JPanel filterToggle = new JPanel(new GridLayout(1, 2, 0, 0));
-        filterToggle.setOpaque(true);
-        filterToggle.setBackground(new Color(241, 245, 249));
-        filterToggle.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true));
-        filterToggle.setPreferredSize(new Dimension(160, 30));
-
-        final JButton[] agFilterBtns = new JButton[2];
-        String[] filterLabels = {"Harian", "Bulanan"};
-        for (int fi = 0; fi < 2; fi++) {
-            final int fIdx = fi;
-            JButton fb = new JButton(filterLabels[fi]);
-            fb.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            fb.setFocusPainted(false);
-            fb.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 12));
-            fb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            // Default: Bulanan (index 1) is active
-            if (fi == 1) {
-                fb.setBackground(UIConstants.PRIMARY_BLUE);
-                fb.setForeground(Color.WHITE);
-                fb.setOpaque(true);
-            } else {
-                fb.setBackground(new Color(241, 245, 249));
-                fb.setForeground(new Color(100, 116, 139));
-                fb.setOpaque(true);
-            }
-            fb.addActionListener(e -> {
-                for (int j = 0; j < 2; j++) {
-                    agFilterBtns[j].setBackground(j == fIdx ? UIConstants.PRIMARY_BLUE : new Color(241, 245, 249));
-                    agFilterBtns[j].setForeground(j == fIdx ? Color.WHITE : new Color(100, 116, 139));
-                }
-            });
-            agFilterBtns[fi] = fb;
-            filterToggle.add(fb);
-        }
-        katHeader.add(filterToggle, BorderLayout.EAST);
-        katCard.add(katHeader, BorderLayout.NORTH);
-
-        agKategoriPanel = new JPanel();
-        agKategoriPanel.setOpaque(false);
-        agKategoriPanel.setLayout(new BoxLayout(agKategoriPanel, BoxLayout.Y_AXIS));
-        katCard.add(agKategoriPanel, BorderLayout.CENTER);
-        body.add(katCard, bl);
-
-        // RIGHT: Savings Goal card
-        bl.gridx = 1; bl.weightx = 0.37; bl.insets = new Insets(0, 0, 0, 0);
-        JPanel savCard = buildRoundedWhiteCard();
-        savCard.setBorder(new EmptyBorder(20, 20, 20, 20));
-        savCard.setLayout(new GridBagLayout());
-        GridBagConstraints sc = new GridBagConstraints();
-        sc.fill = GridBagConstraints.HORIZONTAL; sc.weightx = 1.0; sc.gridx = 0; sc.gridy = 0;
-
-        JLabel lbSavTitle = new JLabel("Tujuan Tabungan");
-        lbSavTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lbSavTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        savCard.add(lbSavTitle, sc);
-
-        sc.gridy++; sc.insets = new Insets(2, 0, 0, 0);
-        JLabel lbSavSub = new JLabel("Liburan Akhir Tahun");
-        lbSavSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lbSavSub.setForeground(UIConstants.TEXT_SECONDARY);
-        savCard.add(lbSavSub, sc);
-
-        sc.gridy++; sc.insets = new Insets(14, 0, 0, 0);
-        JPanel savAmtRow = new JPanel(new BorderLayout());
-        savAmtRow.setOpaque(false);
-        agSavingUsed = new JLabel("Rp 0");
-        agSavingUsed.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        agSavingUsed.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbSavTarget = new JLabel("/ Rp 8.450.000");
-        lbSavTarget.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbSavTarget.setForeground(UIConstants.TEXT_SECONDARY);
-        savAmtRow.add(agSavingUsed, BorderLayout.WEST);
-        savAmtRow.add(lbSavTarget, BorderLayout.EAST);
-        savCard.add(savAmtRow, sc);
-
-        sc.gridy++; sc.insets = new Insets(10, 0, 0, 0);
-        agSavingBar = new JProgressBar(0, 100);
-        agSavingBar.setValue(0);
-        agSavingBar.setStringPainted(false);
-        agSavingBar.setForeground(UIConstants.PRIMARY_BLUE);
-        agSavingBar.setBackground(new Color(226, 232, 240));
-        agSavingBar.setPreferredSize(new Dimension(0, 10));
-        agSavingBar.setBorder(null);
-        savCard.add(agSavingBar, sc);
-
-        sc.gridy++; sc.insets = new Insets(8, 0, 0, 0);
-        JLabel lbSavPct = new JLabel("0% tercapai");
-        lbSavPct.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lbSavPct.setForeground(UIConstants.TEXT_SECONDARY);
-        savCard.add(lbSavPct, sc);
-
-        sc.gridy++; sc.insets = new Insets(16, 0, 0, 0);
-        JLabel lbSavNote = new JLabel(
-            "<html>Tambahkan tabungan rutin setiap bulan untuk mencapai tujuan Anda tepat waktu.</html>");
-        lbSavNote.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        lbSavNote.setForeground(UIConstants.TEXT_SECONDARY);
-        savCard.add(lbSavNote, sc);
-
-        body.add(savCard, bl);
-        outer.add(body, g);
-
-        // â”€â”€ Recent Budget Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        g.gridy++; g.insets = new Insets(20, 30, 30, 30);
-        JPanel recentCard = buildRoundedWhiteCard();
-        recentCard.setBorder(new EmptyBorder(20, 20, 20, 20));
-        recentCard.setLayout(new BorderLayout());
-
-        JPanel recentHeader = new JPanel(new BorderLayout());
-        recentHeader.setOpaque(false);
-        recentHeader.setBorder(new EmptyBorder(0, 0, 14, 0));
-        JLabel lbRecentTitle = new JLabel("Transaksi Anggaran Terbaru");
-        lbRecentTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        lbRecentTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel lbLihatSemua = new JLabel("LIHAT SEMUA RIWAYAT \u203A");
-        lbLihatSemua.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lbLihatSemua.setForeground(UIConstants.PRIMARY_BLUE);
-        lbLihatSemua.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        lbLihatSemua.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { handleMenuClick("Transaksi"); }
-        });
-        recentHeader.add(lbRecentTitle, BorderLayout.WEST);
-        recentHeader.add(lbLihatSemua, BorderLayout.EAST);
-        recentCard.add(recentHeader, BorderLayout.NORTH);
-
-        // Table header
-        JPanel tblHeader = new JPanel(new GridLayout(1, 4, 0, 0));
-        tblHeader.setOpaque(false);
-        tblHeader.setBorder(new EmptyBorder(0, 0, 8, 0));
-        for (String col : new String[]{"TANGGAL", "KATEGORI", "STATUS", "JUMLAH"}) {
-            JLabel lh = new JLabel(col);
-            lh.setFont(new Font("Segoe UI", Font.BOLD, 10));
-            lh.setForeground(UIConstants.TEXT_SECONDARY);
-            if (col.equals("JUMLAH")) lh.setHorizontalAlignment(SwingConstants.RIGHT);
-            tblHeader.add(lh);
-        }
-        JPanel tblWrapper = new JPanel(new BorderLayout());
-        tblWrapper.setOpaque(false);
-        tblWrapper.add(tblHeader, BorderLayout.NORTH);
-
-        agRecentPanel = new JPanel();
-        agRecentPanel.setOpaque(false);
-        agRecentPanel.setLayout(new BoxLayout(agRecentPanel, BoxLayout.Y_AXIS));
-        tblWrapper.add(agRecentPanel, BorderLayout.CENTER);
-        recentCard.add(tblWrapper, BorderLayout.CENTER);
-        outer.add(recentCard, g);
-
-        cardPanel.add(sp, "Anggaran");
-    }
-
-    private JPanel buildAgStatCard(String label, JLabel valueLabel, String sub, Color accent, boolean badge) {
-        JPanel card = buildRoundedWhiteCard();
-        card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setLayout(new GridBagLayout());
-        GridBagConstraints gc = new GridBagConstraints();
-        gc.fill = GridBagConstraints.HORIZONTAL; gc.weightx = 1.0; gc.gridx = 0; gc.gridy = 0;
-
-        JPanel topRow = new JPanel(new BorderLayout());
-        topRow.setOpaque(false);
-        JLabel lbLabel = new JLabel(label);
-        lbLabel.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        lbLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        topRow.add(lbLabel, BorderLayout.WEST);
-
-        JPanel dot = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D)g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(accent);
-                g2.fillOval(0, 0, 8, 8);
-                g2.dispose();
-            }
-        };
-        dot.setOpaque(false);
-        dot.setPreferredSize(new Dimension(8, 8));
-        topRow.add(dot, BorderLayout.EAST);
-        card.add(topRow, gc);
-
-        gc.gridy++; gc.insets = new Insets(8, 0, 0, 0);
-        if (badge) {
-            valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 36));
-            valueLabel.setForeground(accent);
-        } else {
-            valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            valueLabel.setForeground(UIConstants.TEXT_PRIMARY);
-        }
-        card.add(valueLabel, gc);
-
-        gc.gridy++; gc.insets = new Insets(6, 0, 0, 0);
-        JLabel lbSub = new JLabel(sub);
-        lbSub.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lbSub.setForeground(UIConstants.TEXT_SECONDARY);
-        card.add(lbSub, gc);
-
-        return card;
-    }
-
-    private JPanel buildKategoriRow(String icon, String name, String sub,
-                                    double spent, double limit, Color barColor, boolean over) {
-        JPanel row = new JPanel(new BorderLayout(12, 0));
-        row.setOpaque(false);
-        row.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(241, 245, 249)),
-            new EmptyBorder(12, 0, 12, 0)));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-
-        // Icon circle
-        JLabel icLbl = new JLabel(icon, SwingConstants.CENTER) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D)g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(barColor.brighter().brighter());
-                g2.fillOval(0, 0, getWidth(), getHeight());
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        icLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 16));
-        icLbl.setPreferredSize(new Dimension(38, 38));
-        icLbl.setMinimumSize(new Dimension(38, 38));
-        row.add(icLbl, BorderLayout.WEST);
-
-        // Name + progress
-        JPanel mid = new JPanel(new GridBagLayout());
-        mid.setOpaque(false);
-        GridBagConstraints mc = new GridBagConstraints();
-        mc.fill = GridBagConstraints.HORIZONTAL; mc.weightx = 1.0; mc.gridx = 0; mc.gridy = 0;
-
-        JLabel lbName = new JLabel(name);
-        lbName.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lbName.setForeground(over ? new Color(239,68,68) : UIConstants.TEXT_PRIMARY);
-        mid.add(lbName, mc);
-
-        mc.gridy++; mc.insets = new Insets(1, 0, 5, 0);
-        JLabel lbSub2 = new JLabel(sub);
-        lbSub2.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lbSub2.setForeground(UIConstants.TEXT_SECONDARY);
-        mid.add(lbSub2, mc);
-
-        mc.gridy++; mc.insets = new Insets(0, 0, 0, 0);
-        int pct = limit > 0 ? (int) Math.min(100, spent / limit * 100) : 0;
-        JProgressBar bar = new JProgressBar(0, 100);
-        bar.setValue(pct);
-        bar.setStringPainted(false);
-        bar.setForeground(over ? new Color(239,68,68) : barColor);
-        bar.setBackground(new Color(226, 232, 240));
-        bar.setPreferredSize(new Dimension(0, 6));
-        bar.setBorder(null);
-        mid.add(bar, mc);
-
-        row.add(mid, BorderLayout.CENTER);
-
-        // Amounts
-        DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
-        DecimalFormat df = new DecimalFormat("###,###,###", sym);
-        JPanel right = new JPanel();
-        right.setOpaque(false);
-        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-        JLabel lbSpent = new JLabel("Rp" + df.format(spent));
-        lbSpent.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbSpent.setForeground(over ? new Color(239,68,68) : UIConstants.TEXT_PRIMARY);
-        lbSpent.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        JLabel lbLimit = new JLabel("/ Rp" + df.format(limit));
-        lbLimit.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lbLimit.setForeground(UIConstants.TEXT_SECONDARY);
-        lbLimit.setAlignmentX(Component.RIGHT_ALIGNMENT);
-        if (over) {
-            JLabel lbOver = new JLabel("\u26A0 MELEWATI BATAS");
-            lbOver.setFont(new Font("Segoe UI", Font.BOLD, 9));
-            lbOver.setForeground(new Color(239,68,68));
-            lbOver.setAlignmentX(Component.RIGHT_ALIGNMENT);
-            right.add(lbOver);
-        }
-        right.add(lbSpent); right.add(lbLimit);
-        row.add(right, BorderLayout.EAST);
-
-        return row;
-    }
-
-    private void refreshAnggaranPage() {
-        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-            double totalAnggaran = 0, totalSpent = 0, savingUsed = 0;
-            int peringatan = 0;
-            final java.util.List<JPanel> katRows = new java.util.ArrayList<>();
-            final java.util.List<JPanel> recentRows = new java.util.ArrayList<>();
-
-            @Override
-            protected Void doInBackground() throws Exception {
-                DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
-                DecimalFormat df = new DecimalFormat("###,###,###", sym);
-
-                double[] limits = {0, 0, 0, 0};
-                String[] icons  = {"\uD83C\uDF7D", "\uD83C\uDFE0", "\uD83C\uDFAD", "\uD83D\uDE8C"};
-                String[] names  = {"Makanan & Minuman", "Sewa & Tempat Tinggal", "Hiburan", "Transportasi"};
-                String[] subs   = {"Restoran, Belanja Makanan", "Kost, Utilitas, Perawatan",
-                                   "Bioskop, Langganan, Acara", "Ojek, Bus, Bensin, Tol"};
-                Color[]  colors = {new Color(16,185,129), new Color(59,130,246),
-                                   new Color(239,68,68),  new Color(245,158,11)};
-
-                try (Connection conn = DatabaseConnection.getConnection()) {
-                    for (int i = 0; i < names.length; i++) {
-                        // Get actual spend for this category (by name match)
-                        String q = "SELECT COALESCE(SUM(p.jumlah),0) FROM pengeluaran p " +
-                            "JOIN kategori k ON p.kategori_id=k.id " +
-                            "WHERE p.user_id=? AND p.jenis='PENGELUARAN' AND k.nama LIKE ? " +
-                            "AND MONTH(p.tanggal)=MONTH(CURDATE()) AND YEAR(p.tanggal)=YEAR(CURDATE())";
-                        PreparedStatement ps = conn.prepareStatement(q);
-                        ps.setInt(1, userId);
-                        ps.setString(2, "%" + names[i].split(" & ")[0].split(" ")[0] + "%");
-                        ResultSet rs = ps.executeQuery();
-                        double spent = rs.next() ? rs.getDouble(1) : 0;
-                        double lim   = limits[i];
-                        totalAnggaran += lim;
-                        totalSpent    += spent;
-                        boolean over  = spent > lim;
-                        if (over) peringatan++;
-                        final double fSpent = spent; final double fLim = lim;
-                        final boolean fOver = over; final int idx = i;
-                        katRows.add(buildKategoriRow(icons[idx], names[idx], subs[idx], fSpent, fLim, colors[idx], fOver));
-                    }
-                } catch (SQLException ex) { ex.printStackTrace(); }
-
-                // Recent 5 transactions
-                try (Connection conn = DatabaseConnection.getConnection()) {
-                    String q = "SELECT p.tanggal, k.nama, k.icon, p.jumlah " +
-                        "FROM pengeluaran p LEFT JOIN kategori k ON p.kategori_id=k.id " +
-                        "WHERE p.user_id=? AND p.jenis='PENGELUARAN' " +
-                        "ORDER BY p.tanggal DESC, p.id DESC LIMIT 5";
-                    PreparedStatement ps = conn.prepareStatement(q);
-                    ps.setInt(1, userId);
-                    ResultSet rs = ps.executeQuery();
-                    DecimalFormat df2 = new DecimalFormat("###,###,###", sym);
-                    while (rs.next()) {
-                        String tgl  = rs.getString("tanggal"); if (tgl==null) tgl="-";
-                        String kNam = rs.getString("nama");    if (kNam==null) kNam="Lainnya";
-                        String kIc  = rs.getString("icon");    if (kIc==null)  kIc="\uD83D\uDCE6";
-                        double jml  = rs.getDouble("jumlah");
-
-                        JPanel rRow = new JPanel(new GridLayout(1, 4, 0, 0));
-                        rRow.setOpaque(false);
-                        rRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-                        rRow.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(241,245,249)));
-
-                        JLabel lTgl  = new JLabel(tgl);
-                        lTgl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                        lTgl.setForeground(UIConstants.TEXT_PRIMARY);
-                        lTgl.setBorder(new EmptyBorder(10, 0, 10, 0));
-
-                        JLabel lKat  = new JLabel(kIc + " " + kNam);
-                        lKat.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-                        lKat.setForeground(UIConstants.TEXT_PRIMARY);
-                        lKat.setBorder(new EmptyBorder(10, 0, 10, 0));
-
-                        JLabel lStat = new JLabel("\u25CF Pengeluaran");
-                        lStat.setFont(new Font("Segoe UI", Font.BOLD, 11));
-                        lStat.setForeground(new Color(239,68,68));
-                        lStat.setBorder(new EmptyBorder(10, 0, 10, 0));
-
-                        JLabel lJml  = new JLabel("-Rp" + df2.format(jml));
-                        lJml.setFont(new Font("Segoe UI", Font.BOLD, 12));
-                        lJml.setForeground(new Color(239,68,68));
-                        lJml.setHorizontalAlignment(SwingConstants.RIGHT);
-                        lJml.setBorder(new EmptyBorder(10, 0, 10, 0));
-
-                        rRow.add(lTgl); rRow.add(lKat); rRow.add(lStat); rRow.add(lJml);
-                        recentRows.add(rRow);
-                    }
-                } catch (SQLException ex) { ex.printStackTrace(); }
-
-                savingUsed = 0;
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
-                DecimalFormat df = new DecimalFormat("###,###,###", sym);
-
-                agTotalAnggaran.setText("Rp" + df.format(totalAnggaran));
-                agTotalPengeluaran.setText("Rp" + df.format(totalSpent));
-                agSisaSaldo.setText("Rp" + df.format(Math.max(0, totalAnggaran - totalSpent)));
-                agPeringatan.setText(String.format("%02d", peringatan));
-
-                agKategoriPanel.removeAll();
-                for (JPanel r : katRows) agKategoriPanel.add(r);
-                agKategoriPanel.revalidate(); agKategoriPanel.repaint();
-
-                agRecentPanel.removeAll();
-                for (JPanel r : recentRows) agRecentPanel.add(r);
-                agRecentPanel.revalidate(); agRecentPanel.repaint();
-
-                double savGoal = 0;
-                int savPct = savGoal > 0 ? (int) Math.min(100, savingUsed / savGoal * 100) : 0;
-                agSavingUsed.setText("Rp" + df.format(savingUsed));
-                agSavingBar.setValue(savPct);
-            }
-        };
-        worker.execute();
-    }
-
     private void setActiveMenuItem(SidebarMenuItem activeItem) {
         itemDashboard.setActive(itemDashboard == activeItem);
         itemTransaksi.setActive(itemTransaksi == activeItem);
-        itemAnggaran.setActive(itemAnggaran == activeItem);
         itemLaporan.setActive(itemLaporan == activeItem);
         itemPengaturan.setActive(itemPengaturan == activeItem);
         itemBantuan.setActive(itemBantuan == activeItem);
@@ -3046,7 +2508,7 @@ public class DashboardForm extends JFrame {
         styleSecondaryButton(btnExportCSV);
         btnExportCSV.setPreferredSize(new Dimension(150, 42));
         btnExportCSV.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, "Data transaksi berhasil diekspor ke CSV!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            exportTransactionsToCSV();
         });
         
         pnlFilterActions.add(btnAdvancedFilter);
@@ -3161,7 +2623,7 @@ public class DashboardForm extends JFrame {
         tTable.getColumnModel().getColumn(2).setCellRenderer(new TransactionCategoryRenderer());
         tTable.getColumnModel().getColumn(5).setCellRenderer(new TransactionActionRenderer());
 
-        // Add mouse listener to open action popup menu
+        // Add mouse listener to directly trigger edit or delete actions
         tTable.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -3169,20 +2631,14 @@ public class DashboardForm extends JFrame {
                 int col = tTable.columnAtPoint(e.getPoint());
                 if (row >= 0 && col == 5) {
                     int id = (int) tTable.getValueAt(row, 0);
-                    JPopupMenu popup = new JPopupMenu();
-                    JMenuItem menuEdit = new JMenuItem("Edit Transaksi");
-                    menuEdit.setIcon(new ActionButtonIcon(ActionIconType.EDIT));
-                    menuEdit.setIconTextGap(8);
-                    JMenuItem menuDelete = new JMenuItem("Hapus Transaksi");
-                    menuDelete.setIcon(new ActionButtonIcon(ActionIconType.DELETE));
-                    menuDelete.setIconTextGap(8);
+                    Rectangle cellRect = tTable.getCellRect(row, col, true);
+                    int clickX = e.getX() - cellRect.x;
                     
-                    menuEdit.addActionListener(ae -> openEditTransactionDialog(id));
-                    menuDelete.addActionListener(ae -> deleteTransaction(id));
-                    
-                    popup.add(menuEdit);
-                    popup.add(menuDelete);
-                    popup.show(tTable, e.getX(), e.getY());
+                    if (clickX < cellRect.width / 2) {
+                        openEditTransactionDialog(id);
+                    } else {
+                        deleteTransaction(id);
+                    }
                 }
             }
         });
@@ -3592,6 +3048,138 @@ public class DashboardForm extends JFrame {
         worker.execute();
     }
 
+    private void exportTransactionsToCSV() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Ekspor Data Transaksi ke CSV");
+        fileChooser.setSelectedFile(new java.io.File("riwayat_transaksi.csv"));
+        
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            java.io.File fileToSave = fileChooser.getSelectedFile();
+            if (!fileToSave.getName().toLowerCase().endsWith(".csv")) {
+                fileToSave = new java.io.File(fileToSave.getParentFile(), fileToSave.getName() + ".csv");
+            }
+            
+            try (java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(fileToSave), "UTF-8"))) {
+                // UTF-8 BOM
+                writer.write('\ufeff');
+                writer.write("ID,Tanggal,Kategori,Deskripsi,Jenis,Jumlah\n");
+                
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    String query = "SELECT p.id, p.tanggal, k.nama AS kat_nama, p.judul, p.jenis, p.jumlah " +
+                                   "FROM pengeluaran p " +
+                                   "LEFT JOIN kategori k ON p.kategori_id = k.id " +
+                                   "WHERE p.user_id = ? " +
+                                   "ORDER BY p.tanggal DESC, p.id DESC";
+                    PreparedStatement stmt = conn.prepareStatement(query);
+                    stmt.setInt(1, userId);
+                    ResultSet rs = stmt.executeQuery();
+                    
+                    DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
+                    DecimalFormat df = new DecimalFormat("###,###,###.##", sym);
+                    
+                    while (rs.next()) {
+                        int id = rs.getInt("id");
+                        String tanggal = rs.getString("tanggal");
+                        String kategori = rs.getString("kat_nama");
+                        if (kategori == null) kategori = "Lainnya";
+                        String judul = rs.getString("judul");
+                        String jenis = rs.getString("jenis");
+                        double jumlah = rs.getDouble("jumlah");
+                        
+                        String cleanJudul = judul.replace("\"", "\"\"");
+                        String cleanKategori = kategori.replace("\"", "\"\"");
+                        
+                        writer.write(String.format(Locale.US, "%d,%s,\"%s\",\"%s\",%s,%.2f\n", 
+                                     id, tanggal, cleanKategori, cleanJudul, jenis, jumlah));
+                    }
+                }
+                
+                JOptionPane.showMessageDialog(this, "Data transaksi berhasil diekspor ke CSV!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Gagal mengekspor data: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void exportDashboardReport() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Ekspor Laporan Ringkasan Finansial");
+        fileChooser.setSelectedFile(new java.io.File("laporan_keuangan_bulanan.txt"));
+        
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            java.io.File fileToSave = fileChooser.getSelectedFile();
+            if (!fileToSave.getName().toLowerCase().endsWith(".txt")) {
+                fileToSave = new java.io.File(fileToSave.getParentFile(), fileToSave.getName() + ".txt");
+            }
+            
+            try (java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(fileToSave), "UTF-8"))) {
+                writer.write("====================================================\n");
+                writer.write("           FINTRACK PRO - LAPORAN RINGKASAN          \n");
+                writer.write("====================================================\n");
+                writer.write("Tanggal Cetak : " + new SimpleDateFormat("dd MMMM yyyy HH:mm:ss", new Locale("id", "ID")).format(new Date()) + "\n");
+                writer.write("Pengguna      : " + userName + "\n");
+                writer.write("----------------------------------------------------\n\n");
+                
+                String totalKekayaan = totalKekayaanCard.getValue();
+                String pendapatan = pendapatanCard.getValue();
+                String pengeluaran = pengeluaranCard.getValue();
+                
+                writer.write("RINGKASAN KEADAAN KEUANGAN:\n");
+                writer.write(" - Sisa Pemasukkan        : " + totalKekayaan + "\n");
+                writer.write(" - Pendapatan Bulanan    : " + pendapatan + "\n");
+                writer.write(" - Pengeluaran Bulanan   : " + pengeluaran + "\n");
+                writer.write("\n----------------------------------------------------\n\n");
+                
+                writer.write("DAFTAR TRANSAKSI TERAKHIR:\n");
+                writer.write(String.format("%-25s | %-20s | %-15s | %-15s\n", "DESKRIPSI", "KATEGORI", "TANGGAL", "JUMLAH"));
+                writer.write("--------------------------------------------------------------------------------------\n");
+                
+                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy", new Locale("id", "ID"));
+                DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("id","ID"));
+                DecimalFormat df = new DecimalFormat("###,###,###", sym);
+                
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    String query = "SELECT p.tanggal, k.nama AS kat_nama, p.judul, p.jenis, p.jumlah " +
+                                   "FROM pengeluaran p " +
+                                   "LEFT JOIN kategori k ON p.kategori_id = k.id " +
+                                   "WHERE p.user_id = ? " +
+                                   "ORDER BY p.tanggal DESC, p.id DESC LIMIT 10";
+                    PreparedStatement stmt = conn.prepareStatement(query);
+                    stmt.setInt(1, userId);
+                    ResultSet rs = stmt.executeQuery();
+                    
+                    while (rs.next()) {
+                        String tgl = rs.getDate("tanggal") != null ? sdf.format(rs.getDate("tanggal")) : "-";
+                        String kategori = rs.getString("kat_nama");
+                        if (kategori == null) kategori = "Lainnya";
+                        String judul = rs.getString("judul");
+                        String jenis = rs.getString("jenis");
+                        double jumlah = rs.getDouble("jumlah");
+                        
+                        String jumlahStr = ("PEMASUKAN".equals(jenis) ? "+" : "-") + "Rp" + df.format(jumlah);
+                        writer.write(String.format("%-25s | %-20s | %-15s | %-15s\n", 
+                                     judul.length() > 24 ? judul.substring(0, 21) + "..." : judul, 
+                                     kategori.length() > 19 ? kategori.substring(0, 16) + "..." : kategori, 
+                                     tgl, jumlahStr));
+                    }
+                }
+                
+                writer.write("\n====================================================\n");
+                writer.write("             Laporan ini dibuat otomatis            \n");
+                writer.write("                 oleh FinTrack Pro.                 \n");
+                writer.write("====================================================\n");
+                
+                JOptionPane.showMessageDialog(this, "Laporan ringkasan berhasil diekspor!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Gagal mengekspor laporan: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private static class TransaksiData {
         double totalExpenses = 0;
         double totalIncome = 0;
@@ -3602,7 +3190,7 @@ public class DashboardForm extends JFrame {
     // INNER CLASSES: SIDEBAR MENU ITEM, MINI STAT CARD, DETAIL BAR CHART
     // ==========================================
     private enum SidebarIconType {
-        DASHBOARD, TRANSACTION, BUDGET, REPORT, SETTINGS, HELP
+        DASHBOARD, TRANSACTION, REPORT, SETTINGS, HELP
     }
 
     private enum ActionIconType {
@@ -3901,12 +3489,7 @@ public class DashboardForm extends JFrame {
                         g2.drawLine(x + 2, y + 7, x + 14, y + 7);
                         g2.fillOval(x + 12, y + 10, 2, 2);
                         break;
-                    case BUDGET:
-                        g2.drawRoundRect(x, y + 1, s, 14, 2, 2);
-                        g2.drawLine(x + 4, y + 11, x + 4, y + 13);
-                        g2.drawLine(x + 8, y + 8, x + 8, y + 13);
-                        g2.drawLine(x + 12, y + 5, x + 12, y + 13);
-                        break;
+
                     case REPORT:
                         g2.drawRoundRect(x + 1, y, 14, 16, 2, 2);
                         g2.drawLine(x + 4, y + 5, x + 12, y + 5);
@@ -4117,6 +3700,7 @@ public class DashboardForm extends JFrame {
         private RoundedTextField txtJudul;
         private RoundedTextField txtJumlah;
         private JComboBox<KategoriComboItem> comboKategori;
+        private JComboBox<String> comboJenis;
         private JSpinner spinnerTanggal;
         private JTextArea txtCatatan;
         private RoundedButton btnSave;
@@ -4126,7 +3710,7 @@ public class DashboardForm extends JFrame {
             this.parent = parent;
             this.transactionId = transactionId;
 
-            setSize(450, 520);
+            setSize(450, 580);
             setLocationRelativeTo(parent);
             setResizable(false);
 
@@ -4160,10 +3744,19 @@ public class DashboardForm extends JFrame {
             container.add(txtJudul, gbc);
 
             gbc.gridy++;
-            container.add(createLabel("Jumlah Pengeluaran (Rp)"), gbc);
+            container.add(createLabel("Jumlah (Rp)"), gbc);
             gbc.gridy++;
             txtJumlah = new RoundedTextField("Masukkan jumlah uang", null);
             container.add(txtJumlah, gbc);
+
+            gbc.gridy++;
+            container.add(createLabel("Jenis Transaksi"), gbc);
+            gbc.gridy++;
+            comboJenis = new JComboBox<>(new String[]{"PENGELUARAN", "PEMASUKAN"});
+            comboJenis.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            comboJenis.setBackground(Color.WHITE);
+            comboJenis.setPreferredSize(new Dimension(0, 40));
+            container.add(comboJenis, gbc);
 
             gbc.gridy++;
             container.add(createLabel("Kategori"), gbc);
@@ -4230,7 +3823,7 @@ public class DashboardForm extends JFrame {
 
         private void loadTransactionData() {
             try (Connection conn = DatabaseConnection.getConnection()) {
-                String query = "SELECT judul, jumlah, kategori_id, tanggal, catatan FROM pengeluaran WHERE id = ?";
+                String query = "SELECT judul, jumlah, kategori_id, tanggal, catatan, jenis FROM pengeluaran WHERE id = ?";
                 PreparedStatement stmt = conn.prepareStatement(query);
                 stmt.setInt(1, transactionId);
                 ResultSet rs = stmt.executeQuery();
@@ -4240,12 +3833,18 @@ public class DashboardForm extends JFrame {
                     int katId = rs.getInt("kategori_id");
                     Date tanggal = rs.getDate("tanggal");
                     String catatan = rs.getString("catatan");
+                    String jenis = rs.getString("jenis");
                     
                     if (catatan != null) {
                         txtCatatan.setText(catatan);
                     }
                     if (tanggal != null) {
                         spinnerTanggal.setValue(tanggal);
+                    }
+                    if ("PEMASUKAN".equals(jenis)) {
+                        comboJenis.setSelectedItem("PEMASUKAN");
+                    } else {
+                        comboJenis.setSelectedItem("PENGELUARAN");
                     }
                     
                     for (int i = 0; i < comboKategori.getItemCount(); i++) {
@@ -4267,6 +3866,7 @@ public class DashboardForm extends JFrame {
             KategoriComboItem item = (KategoriComboItem) comboKategori.getSelectedItem();
             Date date = (Date) spinnerTanggal.getValue();
             String catatan = txtCatatan.getText().trim();
+            String jenis = (String) comboJenis.getSelectedItem();
 
             if (judul.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Deskripsi/Judul tidak boleh kosong.", "Validasi Gagal", JOptionPane.WARNING_MESSAGE);
@@ -4281,7 +3881,7 @@ public class DashboardForm extends JFrame {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Jumlah pengeluaran harus berupa angka positif.", "Validasi Gagal", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Jumlah harus berupa angka positif.", "Validasi Gagal", JOptionPane.WARNING_MESSAGE);
                 txtJumlah.requestFocus();
                 return;
             }
@@ -4295,18 +3895,19 @@ public class DashboardForm extends JFrame {
             btnSave.setText("Menyimpan...");
 
             try (Connection conn = DatabaseConnection.getConnection()) {
-                String query = "UPDATE pengeluaran SET kategori_id = ?, judul = ?, jumlah = ?, tanggal = ?, catatan = ? WHERE id = ?";
+                String query = "UPDATE pengeluaran SET kategori_id = ?, judul = ?, jumlah = ?, tanggal = ?, catatan = ?, jenis = ? WHERE id = ?";
                 PreparedStatement stmt = conn.prepareStatement(query);
                 stmt.setInt(1, item.id);
                 stmt.setString(2, judul);
                 stmt.setDouble(3, jumlah);
                 stmt.setDate(4, new java.sql.Date(date.getTime()));
                 stmt.setString(5, catatan.isEmpty() ? null : catatan);
-                stmt.setInt(6, transactionId);
+                stmt.setString(6, jenis);
+                stmt.setInt(7, transactionId);
 
                 stmt.executeUpdate();
                 
-                JOptionPane.showMessageDialog(this, "Transaksi pengeluaran berhasil diperbarui!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Transaksi berhasil diperbarui!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
                 
                 parent.refreshDashboardData();
                 parent.refreshTransaksiPage();
@@ -4334,6 +3935,139 @@ public class DashboardForm extends JFrame {
             public String toString() {
                 return icon + " " + name;
             }
+        }
+    }
+
+    private static class DateRangeDialog extends JDialog {
+        private final JSpinner spinStart;
+        private final JSpinner spinEnd;
+        private boolean confirmed = false;
+        
+        public DateRangeDialog(JFrame parent, Date defaultStart, Date defaultEnd) {
+            super(parent, "Pilih Rentang Tanggal", true);
+            setSize(360, 240);
+            setLocationRelativeTo(parent);
+            setResizable(false);
+            
+            JPanel panel = new JPanel(new GridBagLayout());
+            panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+            panel.setBackground(Color.WHITE);
+            setContentPane(panel);
+            
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            gbc.weightx = 1.0;
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.insets = new Insets(0, 0, 12, 0);
+            
+            // Predefined Range Combo
+            JLabel lblQuick = new JLabel("Pilihan Cepat");
+            lblQuick.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lblQuick.setForeground(UIConstants.TEXT_SECONDARY);
+            panel.add(lblQuick, gbc);
+            
+            gbc.gridy++;
+            String[] options = {"Kustom", "Bulan Ini", "Bulan Lalu", "3 Bulan Terakhir", "Tahun Ini"};
+            JComboBox<String> comboQuick = new JComboBox<>(options);
+            comboQuick.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            comboQuick.setBackground(Color.WHITE);
+            panel.add(comboQuick, gbc);
+            
+            // Date spinners
+            gbc.gridy++;
+            JPanel datePanel = new JPanel(new GridLayout(2, 2, 10, 10));
+            datePanel.setOpaque(false);
+            
+            JLabel lblStart = new JLabel("Tanggal Mulai");
+            lblStart.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lblStart.setForeground(UIConstants.TEXT_SECONDARY);
+            
+            JLabel lblEnd = new JLabel("Tanggal Selesai");
+            lblEnd.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lblEnd.setForeground(UIConstants.TEXT_SECONDARY);
+            
+            SpinnerDateModel startModel = new SpinnerDateModel(defaultStart, null, null, Calendar.DAY_OF_MONTH);
+            spinStart = new JSpinner(startModel);
+            spinStart.setEditor(new JSpinner.DateEditor(spinStart, "yyyy-MM-dd"));
+            spinStart.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            
+            SpinnerDateModel endModel = new SpinnerDateModel(defaultEnd, null, null, Calendar.DAY_OF_MONTH);
+            spinEnd = new JSpinner(endModel);
+            spinEnd.setEditor(new JSpinner.DateEditor(spinEnd, "yyyy-MM-dd"));
+            spinEnd.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            
+            datePanel.add(lblStart);
+            datePanel.add(lblEnd);
+            datePanel.add(spinStart);
+            datePanel.add(spinEnd);
+            
+            panel.add(datePanel, gbc);
+            
+            // Action listener for predefined choices
+            comboQuick.addActionListener(e -> {
+                String sel = (String) comboQuick.getSelectedItem();
+                Calendar c = Calendar.getInstance();
+                Date end = new Date();
+                Date start = new Date();
+                
+                if ("Bulan Ini".equals(sel)) {
+                    c.set(Calendar.DAY_OF_MONTH, 1);
+                    start = c.getTime();
+                } else if ("Bulan Lalu".equals(sel)) {
+                    c.add(Calendar.MONTH, -1);
+                    c.set(Calendar.DAY_OF_MONTH, 1);
+                    start = c.getTime();
+                    c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
+                    end = c.getTime();
+                } else if ("3 Bulan Terakhir".equals(sel)) {
+                    c.add(Calendar.MONTH, -2);
+                    c.set(Calendar.DAY_OF_MONTH, 1);
+                    start = c.getTime();
+                } else if ("Tahun Ini".equals(sel)) {
+                    c.set(Calendar.DAY_OF_YEAR, 1);
+                    start = c.getTime();
+                } else {
+                    return; // Kustom, do nothing
+                }
+                
+                spinStart.setValue(start);
+                spinEnd.setValue(end);
+            });
+            
+            // Buttons
+            gbc.gridy++;
+            gbc.insets = new Insets(16, 0, 0, 0);
+            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+            btnPanel.setOpaque(false);
+            
+            JButton btnCancel = new JButton("Batal");
+            btnCancel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            btnCancel.addActionListener(e -> dispose());
+            
+            RoundedButton btnOk = new RoundedButton("Terapkan");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            btnOk.setPreferredSize(new Dimension(100, 36));
+            btnOk.addActionListener(e -> {
+                confirmed = true;
+                dispose();
+            });
+            
+            btnPanel.add(btnCancel);
+            btnPanel.add(btnOk);
+            panel.add(btnPanel, gbc);
+        }
+        
+        public boolean isConfirmed() {
+            return confirmed;
+        }
+        
+        public Date getStartDate() {
+            return (Date) spinStart.getValue();
+        }
+        
+        public Date getEndDate() {
+            return (Date) spinEnd.getValue();
         }
     }
 }

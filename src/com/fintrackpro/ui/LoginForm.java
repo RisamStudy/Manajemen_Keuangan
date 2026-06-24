@@ -654,4 +654,21 @@ public class LoginForm extends JFrame {
             "Halaman pendaftaran akan ditampilkan di sini.",
             "Daftar", JOptionPane.INFORMATION_MESSAGE);
     }
+
+    public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            // Fallback
+        }
+
+        UIManager.put("OptionPane.messageFont", new Font("Segoe UI", Font.PLAIN, 14));
+        UIManager.put("OptionPane.buttonFont", new Font("Segoe UI", Font.BOLD, 13));
+        UIManager.put("TextField.caretForeground", new Color(24, 100, 205));
+
+        SwingUtilities.invokeLater(() -> {
+            LoginForm loginForm = new LoginForm();
+            loginForm.setVisible(true);
+        });
+    }
 }
